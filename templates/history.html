@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Audit History — SentinelFlow NIDS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-display font-bold text-2xl sm:text-3xl text-[#3B2F2A]">Telemetry Audit History Log</h1>
+      <p class="text-xs sm:text-sm text-[#8A7568] mt-1">Chronological record of all evaluated network sessions and predicted risk classifications.</p>
+    </div>
+    
+    <!-- Actions -->
+    <div class="flex items-center gap-2">
+      <a href="/reports/download/csv" class="btn-secondary-warm text-xs py-2 px-3.5">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        <span>Download CSV</span>
+      </a>
+      <button onclick="document.getElementById('clear-modal').classList.remove('hidden')" class="btn-secondary-warm text-xs py-2 px-3.5 text-red-600 border-red-200 hover:bg-red-50">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <span>Clear History</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search Filter Bar -->
+  <div class="card-sentinel p-4 bg-[#FFFDFB]">
+    <form method="GET" action="/history" class="flex items-center gap-3">
+      <div class="relative flex-1">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A7568]"></i>
+        <input 
+          type="text" 
+          name="q" 
+          value="{{ search_query }}" 
+          placeholder="Search by attack type, traffic status, threat level, or IP..." 
+          class="w-full pl-9 pr-3 py-2 text-xs bg-white border border-[#F3E5D8] rounded-xl focus:outline-none focus:border-orange-500"
+        >
+      </div>
+      <button type="submit" class="btn-primary-gradient text-xs py-2 px-5">Search</button>
+      {% if search_query %}
+        <a href="/history" class="btn-secondary-warm text-xs py-2 px-3">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- History Table -->
+  <div class="card-sentinel overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-[#F3E5D8] text-[#8A7568] uppercase text-[10px] tracking-wider font-semibold bg-[#FFFDFB]">
+            <th class="py-3 px-3">ID</th>
+            <th class="py-3 px-3">Classification</th>
+            <th class="py-3 px-3">Confidence</th>
+            <th class="py-3 px-3">Risk Score</th>
+            <th class="py-3 px-3">Threat Level</th>
+            <th class="py-3 px-3">Traffic Status</th>
+            <th class="py-3 px-3">Timestamp</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F3E5D8]">
+          {% for row in rows %}
+            <tr class="hover:bg-[#FFF8F0] transition-colors">
+              <td class="py-3 px-3 font-mono text-[#8A7568]">#{{ row[0] }}</td>
+              <td class="py-3 px-3 font-bold text-[#3B2F2A]">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full {% if row[1] == 'Normal' %}bg-emerald-500{% elif row[1] == 'DoS' %}bg-red-600{% elif row[1] == 'Probe' %}bg-amber-500{% else %}bg-orange-500{% endif %}"></span>
+                  <span>{{ row[1] }}</span>
+                </div>
+              </td>
+              <td class="py-3 px-3 font-mono">{{ row[2] }}%</td>
+              <td class="py-3 px-3 font-mono font-bold {% if row[3] >= 60 %}text-red-600{% elif row[3] >= 30 %}text-amber-600{% else %}text-emerald-600{% endif %}">
+                {{ row[3] }}
+              </td>
+              <td class="py-3 px-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {% if row[4] in ('Critical', 'High') %}badge-critical{% elif row[4] == 'Medium' %}badge-medium{% else %}badge-safe{% endif %}">
+                  {{ row[4] }}
+                </span>
+              </td>
+              <td class="py-3 px-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border {% if row[5] == 'Malicious' %}bg-red-50 text-red-700 border-red-200{% elif row[5] == 'Safe' %}bg-emerald-50 text-emerald-700 border-emerald-200{% else %}bg-amber-50 text-amber-700 border-amber-200{% endif %}">
+                  {{ row[5] }}
+                </span>
+              </td>
+              <td class="py-3 px-3 font-mono text-[11px] text-[#8A7568]">{{ row[6] or 'Recent' }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="7" class="py-12 text-center text-[#8A7568]">
+                No prediction history found. Run some network detections first!
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    {% if pagination and pagination.pages > 1 %}
+      <div class="p-4 border-t border-[#F3E5D8] flex items-center justify-between text-xs text-[#8A7568]">
+        <div>
+          Page <strong>{{ pagination.page }}</strong> of <strong>{{ pagination.pages }}</strong> (Total: {{ pagination.total }} records)
+        </div>
+        <div class="flex items-center gap-1.5">
+          {% if pagination.has_prev %}
+            <a href="{{ url_for('reports.history', page=pagination.prev_num, q=search_query) }}" class="btn-secondary-warm text-xs py-1 px-3">Previous</a>
+          {% endif %}
+          {% if pagination.has_next %}
+            <a href="{{ url_for('reports.history', page=pagination.next_num, q=search_query) }}" class="btn-secondary-warm text-xs py-1 px-3">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Clear History Confirmation Modal -->
+<div id="clear-modal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white border border-[#F3E5D8] rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-xl">
+    <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl">
+      🗑️
+    </div>
+    <div>
+      <h3 class="font-display font-bold text-lg text-[#3B2F2A]">Clear All History?</h3>
+      <p class="text-xs text-[#8A7568] mt-1">This will permanently purge all prediction telemetry and security alerts. This action cannot be undone.</p>
+    </div>
+    <div class="flex items-center justify-center gap-2 pt-2">
+      <button onclick="document.getElementById('clear-modal').classList.add('hidden')" class="btn-secondary-warm text-xs py-2 px-4">Cancel</button>
+      <form action="/clear_history" method="POST" class="inline">
+        <button type="submit" class="btn-primary-gradient text-xs py-2 px-5 bg-gradient-to-r from-red-600 to-rose-500">
+          Yes, Purge History
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

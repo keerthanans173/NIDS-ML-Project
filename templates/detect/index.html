@@ -1,0 +1,580 @@
+{% extends "base.html" %}
+
+{% block title %}Detect Studio — SentinelFlow NIDS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-display font-bold text-2xl sm:text-3xl text-[#3B2F2A]">Detection & Ingestion Studio</h1>
+      <p class="text-xs sm:text-sm text-[#8A7568] mt-1">Multi-modal network traffic analysis with SHAP explainability and automated risk classification.</p>
+    </div>
+
+    <!-- Mode Tab Switcher -->
+    <div class="flex items-center gap-1.5 p-1 bg-white border border-[#F3E5D8] rounded-xl shadow-xs text-xs font-semibold">
+      <button onclick="switchTab('tab-manual')" id="btn-tab-manual" class="px-3 py-1.5 rounded-lg bg-[#FFEFD9] text-[#F97316] transition-all">
+        Manual Form
+      </button>
+      <button onclick="switchTab('tab-csv')" id="btn-tab-csv" class="px-3 py-1.5 rounded-lg text-[#8A7568] hover:text-[#3B2F2A] transition-all">
+        CSV Batch
+      </button>
+      <button onclick="switchTab('tab-stream')" id="btn-tab-stream" class="px-3 py-1.5 rounded-lg text-[#8A7568] hover:text-[#3B2F2A] transition-all flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>Live Replay</span>
+      </button>
+      <button onclick="switchTab('tab-packet')" id="btn-tab-packet" class="px-3 py-1.5 rounded-lg text-[#8A7568] hover:text-[#3B2F2A] transition-all">
+        Live Capture (Exp.)
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= TAB 1: MANUAL PARAMETER FORM ================= -->
+  <div id="tab-manual" class="tab-content space-y-6">
+    
+    <!-- Presets & Beginner/Expert Mode Bar -->
+    <div class="card-sentinel p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-white via-white to-[#FFF9F3]">
+      <div>
+        <span class="text-xs font-semibold text-[#8A7568] uppercase tracking-wider block mb-1">Prefilled Presets</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" onclick="applyPreset('Normal')" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors">
+            ✅ Benign (Normal)
+          </button>
+          <button type="button" onclick="applyPreset('DoS')" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-800 border border-red-200 hover:bg-red-100 transition-colors">
+            🚨 SYN Flood (DoS)
+          </button>
+          <button type="button" onclick="applyPreset('Probe')" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors">
+            🔍 Portsweep (Probe)
+          </button>
+          <button type="button" onclick="applyPreset('R2L')" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-orange-50 text-orange-800 border border-orange-200 hover:bg-orange-100 transition-colors">
+            🔓 Password Guess (R2L)
+          </button>
+          <button type="button" onclick="applyPreset('U2R')" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 transition-colors">
+            ⚡ Root Escalation (U2R)
+          </button>
+        </div>
+      </div>
+
+      <!-- Mode Toggle -->
+      <div class="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-[#F3E5D8]">
+        <span class="text-xs font-medium text-[#8A7568]">Form Depth:</span>
+        <div class="inline-flex rounded-lg border border-[#F3E5D8] p-0.5 bg-[#FFF8F0]">
+          <button type="button" onclick="setFormMode('beginner')" id="btn-mode-beginner" class="px-2.5 py-1 text-xs font-semibold rounded-md bg-white text-[#F97316] shadow-xs">
+            Beginner (8 Key Fields)
+          </button>
+          <button type="button" onclick="setFormMode('expert')" id="btn-mode-expert" class="px-2.5 py-1 text-xs font-semibold rounded-md text-[#8A7568]">
+            Expert (All 41 Features)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Form -->
+    <form action="/predict" method="POST" id="manual-detect-form" class="space-y-6">
+      
+      <!-- Source IP Override -->
+      <div class="card-sentinel p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FFFDFB]">
+        <div class="flex items-center gap-2">
+          <i data-lucide="network" class="w-4 h-4 text-orange-600"></i>
+          <span class="text-xs font-bold text-[#3B2F2A]">Telemetry Source IP Address:</span>
+        </div>
+        <input 
+          type="text" 
+          name="source_ip" 
+          id="field-source-ip" 
+          value="192.168.1.105" 
+          class="text-xs font-mono py-1.5 px-3 rounded-lg border border-[#F3E5D8] bg-white focus:outline-none focus:border-orange-500 w-full sm:w-60"
+        >
+      </div>
+
+      <!-- Group 1: Basic Connection Features -->
+      <div class="card-sentinel p-5 space-y-4">
+        <div class="border-b border-[#F3E5D8] pb-3 flex items-center justify-between">
+          <div>
+            <h3 class="font-display font-bold text-base text-[#3B2F2A] flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+              <span>{{ feature_groups.basic.title }}</span>
+            </h3>
+            <p class="text-xs text-[#8A7568]">{{ feature_groups.basic.description }}</p>
+          </div>
+          <span class="text-[11px] font-mono text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-200">Transport Layer</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {% for feat in feature_groups.basic.features %}
+            {% set meta = feature_metadata[feat] %}
+            <div class="form-field-wrapper space-y-1" data-feature="{{ feat }}">
+              <div class="flex items-center justify-between">
+                <label for="f_{{ feat }}" class="text-xs font-semibold text-[#3B2F2A]">{{ meta.label }}</label>
+                <span class="text-[10px] text-[#8A7568] cursor-help" title="{{ meta.tooltip }}">ⓘ</span>
+              </div>
+              {% if meta.type == 'select' %}
+                <select name="{{ feat }}" id="f_{{ feat }}" class="w-full text-xs py-2 px-2.5 rounded-lg border border-[#F3E5D8] bg-white focus:outline-none focus:border-orange-500">
+                  {% for opt in meta.options %}
+                    <option value="{{ opt }}" {% if opt == meta.default %}selected{% endif %}>{{ opt }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input 
+                  type="number" 
+                  name="{{ feat }}" 
+                  id="f_{{ feat }}" 
+                  value="{{ meta.default }}" 
+                  {% if meta.min is defined %}min="{{ meta.min }}"{% endif %}
+                  {% if meta.max is defined %}max="{{ meta.max }}"{% endif %}
+                  {% if meta.step is defined %}step="{{ meta.step }}"{% endif %}
+                  class="w-full text-xs py-2 px-2.5 rounded-lg border border-[#F3E5D8] bg-white focus:outline-none focus:border-orange-500 font-mono"
+                >
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Group 2: Content / Payload Features (Expert Mode) -->
+      <div class="card-sentinel p-5 space-y-4 form-group-expert">
+        <div class="border-b border-[#F3E5D8] pb-3 flex items-center justify-between">
+          <div>
+            <h3 class="font-display font-bold text-base text-[#3B2F2A] flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span>{{ feature_groups.content.title }}</span>
+            </h3>
+            <p class="text-xs text-[#8A7568]">{{ feature_groups.content.description }}</p>
+          </div>
+          <span class="text-[11px] font-mono text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Host Payload</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {% for feat in feature_groups.content.features %}
+            {% set meta = feature_metadata[feat] %}
+            <div class="form-field-wrapper space-y-1" data-feature="{{ feat }}">
+              <div class="flex items-center justify-between">
+                <label for="f_{{ feat }}" class="text-xs font-semibold text-[#3B2F2A]">{{ meta.label }}</label>
+                <span class="text-[10px] text-[#8A7568] cursor-help" title="{{ meta.tooltip }}">ⓘ</span>
+              </div>
+              {% if meta.type == 'select' %}
+                <select name="{{ feat }}" id="f_{{ feat }}" class="w-full text-xs py-2 px-2.5 rounded-lg border border-[#F3E5D8] bg-white focus:outline-none focus:border-orange-500">
+                  {% for opt in meta.options %}
+                    <option value="{{ opt }}" {% if opt == meta.default %}selected{% endif %}>{{ opt }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input 
+                  type="number" 
+                  name="{{ feat }}" 
+                  id="f_{{ feat }}" 
+                  value="{{ meta.default }}" 
+                  {% if meta.min is defined %}min="{{ meta.min }}"{% endif %}
+                  {% if meta.max is defined %}max="{{ meta.max }}"{% endif %}
+                  {% if meta.step is defined %}step="{{ meta.step }}"{% endif %}
+                  class="w-full text-xs py-2 px-2.5 rounded-lg border border-[#F3E5D8] bg-white focus:outline-none focus:border-orange-500 font-mono"
+                >
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Group 3: Traffic & Rate Features -->
+      <div class="card-sentinel p-5 space-y-4">
+        <div class="border-b border-[#F3E5D8] pb-3 flex items-center justify-between">
+          <div>
+            <h3 class="font-display font-bold text-base text-[#3B2F2A] flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-red-500"></span>
+              <span>{{ feature_groups.traffic.title }}</span>
+            </h3>
+            <p class="text-xs text-[#8A7568]">{{ feature_groups.traffic.description }}</p>
+          </div>
+          <span class="text-[11px] font-mono text-red-700 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200">Window Telemetry</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {% for feat in feature_groups.traffic.features %}
+            {% set meta = feature_metadata[feat] %}
+            <div class="form-field-wrapper space-y-1 {% if feat not in ['count', 'srv_count', 'serror_rate', 'same_srv_rate'] %}form-field-expert{% endif %}" data-feature="{{ feat }}">
+              <div class="flex items-center justify-between">
+                <label for="f_{{ feat }}" class="text-xs font-semibold text-[#3B2F2A]">{{ meta.label }}</label>
+                <span class="text-[10px] text-[#8A7568] cursor-help" title="{{ meta.tooltip }}">ⓘ</span>
+              </div>
+              <input 
+                type="number" 
+                name="{{ feat }}" 
+                id="f_{{ feat }}" 
+                value="{{ meta.default }}" 
+                {% if meta.min is defined %}min="{{ meta.min }}"{% endif %}
+                {% if meta.max is defined %}max="{{ meta.max }}"{% endif %}
+                {% if meta.step is defined %}step="{{ meta.step }}"{% endif %}
+                class="w-full text-xs py-2 px-2.5 rounded-lg border border-[#F3E5D8] bg-white focus:outline-none focus:border-orange-500 font-mono"
+              >
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="flex items-center justify-between pt-2">
+        <button type="reset" class="btn-secondary-warm text-xs py-2.5 px-4">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          <span>Reset Defaults</span>
+        </button>
+        <button type="submit" class="btn-primary-gradient py-3 px-8 text-sm shadow-md">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+          <span>Execute Threat Analysis & SHAP Explanation</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- ================= TAB 2: CSV BATCH UPLOAD ================= -->
+  <div id="tab-csv" class="tab-content hidden space-y-6">
+    <div class="card-sentinel p-6">
+      <div class="max-w-xl mx-auto text-center space-y-4">
+        <div class="w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto">
+          <i data-lucide="file-up" class="w-7 h-7"></i>
+        </div>
+        <div>
+          <h3 class="font-display font-bold text-lg text-[#3B2F2A]">Batch Network Telemetry Ingestion</h3>
+          <p class="text-xs text-[#8A7568] mt-1">Upload an NSL-KDD formatted CSV file to process multiple packet sessions concurrently.</p>
+        </div>
+
+        <form id="csv-upload-form" onsubmit="handleBatchUpload(event)" class="space-y-4">
+          <div class="border-2 border-dashed border-[#F3E5D8] rounded-2xl p-6 hover:border-[#F97316] transition-colors cursor-pointer bg-[#FFFDFB]">
+            <input type="file" id="batch-file-input" accept=".csv" required class="block w-full text-xs text-[#8A7568] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer">
+          </div>
+          <button type="submit" id="btn-batch-submit" class="btn-primary-gradient w-full py-2.5 text-xs justify-center">
+            <i data-lucide="play" class="w-4 h-4"></i>
+            <span>Start Batch Ingestion</span>
+          </button>
+        </form>
+
+        <!-- Progress Indicator -->
+        <div id="batch-progress-box" class="hidden space-y-2 pt-2">
+          <div class="flex justify-between text-xs font-semibold text-[#8A7568]">
+            <span id="batch-progress-label">Evaluating packet vectors...</span>
+            <span id="batch-progress-pct">0%</span>
+          </div>
+          <div class="w-full bg-[#F3E5D8] h-2 rounded-full overflow-hidden">
+            <div id="batch-progress-bar" class="h-full bg-gradient-to-r from-orange-500 to-amber-400 w-0 transition-all duration-300"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Results Table Container -->
+    <div id="batch-results-container" class="card-sentinel p-5 hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="font-display font-bold text-base text-[#3B2F2A]" id="batch-results-title">Batch Results</h3>
+          <p class="text-xs text-[#8A7568]" id="batch-results-subtitle">Evaluated sessions</p>
+        </div>
+        <button onclick="downloadBatchResultsCSV()" class="btn-secondary-warm text-xs py-1.5 px-3">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Download Results CSV</span>
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-[#F3E5D8] text-[#8A7568] uppercase text-[10px] tracking-wider font-semibold bg-[#FFFDFB]">
+              <th class="py-2.5 px-3">Row #</th>
+              <th class="py-2.5 px-3">Source IP</th>
+              <th class="py-2.5 px-3">Classification</th>
+              <th class="py-2.5 px-3">Confidence</th>
+              <th class="py-2.5 px-3">Risk Score</th>
+              <th class="py-2.5 px-3">Top SHAP Driver</th>
+            </tr>
+          </thead>
+          <tbody id="batch-results-tbody" class="divide-y divide-[#F3E5D8]"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 3: LIVE REPLAY STREAM ================= -->
+  <div id="tab-stream" class="tab-content hidden space-y-6">
+    <div class="card-sentinel p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#F3E5D8]">
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="font-display font-bold text-lg text-[#3B2F2A]">KDDTest+ Replay Simulation Feed</h3>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+              SIMULATED TRAFFIC
+            </span>
+          </div>
+          <p class="text-xs text-[#8A7568] mt-1">Streams real benchmark records from the test dataset into the active detector at controllable replay speeds.</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center gap-2">
+          <select id="stream-speed-select" onchange="changeStreamSpeed(this.value)" class="text-xs font-semibold py-2 px-3 rounded-xl border border-[#F3E5D8] bg-white">
+            <option value="1">1x Speed (1 pkt/s)</option>
+            <option value="5">5x Speed (5 pkt/s)</option>
+            <option value="10">10x Speed (10 pkt/s)</option>
+          </select>
+          <button id="btn-stream-start" onclick="toggleStream(true)" class="btn-primary-gradient text-xs py-2 px-4">
+            <i data-lucide="play" class="w-3.5 h-3.5"></i>
+            <span>Start Stream</span>
+          </button>
+          <button id="btn-stream-stop" onclick="toggleStream(false)" class="btn-secondary-warm text-xs py-2 px-4 hidden">
+            <i data-lucide="pause" class="w-3.5 h-3.5"></i>
+            <span>Stop Stream</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Stream Telemetry Window -->
+      <div class="mt-6 space-y-3">
+        <div class="flex items-center justify-between text-xs font-semibold text-[#8A7568]">
+          <span class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>Live Telemetry Output Ticker</span>
+          </span>
+          <span class="font-mono text-[11px]">Buffer: 5,000 benchmark records</span>
+        </div>
+        <div id="stream-ticker-box" class="bg-[#2D2420] text-[#FED7AA] font-mono text-xs p-4 rounded-xl h-64 overflow-y-auto space-y-1.5 shadow-inner">
+          <div class="text-[#8A7568] italic">// Click "Start Stream" above to stream records into SentinelFlow detection pipeline...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 4: EXPERIMENTAL PACKET CAPTURE ================= -->
+  <div id="tab-packet" class="tab-content hidden space-y-6">
+    <div class="card-sentinel p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+          <i data-lucide="radio" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="font-display font-bold text-lg text-[#3B2F2A]">Raw Network Packet Capture (Experimental)</h3>
+          <span class="text-xs text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Experimental Feature</span>
+        </div>
+      </div>
+
+      <div class="space-y-4 text-xs text-[#3B2F2A] leading-relaxed">
+        <p>
+          SentinelFlow is calibrated on the 41-feature <strong>NSL-KDD benchmark</strong>, which utilizes synthesized statistical connection window summaries (e.g., 2-second connection rates, host error ratios, service concentrations) rather than isolated raw Ethernet frames.
+        </p>
+        <div class="p-4 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8] space-y-2">
+          <h4 class="font-bold text-[#F97316]">Prerequisites for Physical Raw Sniffing:</h4>
+          <ul class="list-disc list-inside space-y-1 text-[#8A7568]">
+            <li>Administrator / elevated root privileges for raw socket bindings.</li>
+            <li>WinPcap / Npcap drivers installed on Windows host.</li>
+            <li>Real-time flow aggregation daemon to compute 2-second sliding connection windows (<code>count</code>, <code>serror_rate</code>, <code>same_srv_rate</code>).</li>
+          </ul>
+        </div>
+        <p class="text-[#8A7568]">
+          To demonstrate live system operations safely without driver locks or elevated socket panics, please utilize <strong>Mode 3 (Live Replay Stream)</strong> or the <strong>Attack Simulator</strong>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let activeTab = 'tab-manual';
+  let isStreamActive = false;
+  let currentBatchData = [];
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.getElementById(tabId).classList.remove('hidden');
+
+    ['tab-manual', 'tab-csv', 'tab-stream', 'tab-packet'].forEach(t => {
+      const btn = document.getElementById(`btn-${t}`);
+      if (t === tabId) {
+        btn.className = "px-3 py-1.5 rounded-lg bg-[#FFEFD9] text-[#F97316] font-semibold transition-all";
+      } else {
+        btn.className = "px-3 py-1.5 rounded-lg text-[#8A7568] hover:text-[#3B2F2A] transition-all";
+      }
+    });
+    activeTab = tabId;
+  }
+
+  function setFormMode(mode) {
+    const expertGroup = document.querySelector('.form-group-expert');
+    const expertFields = document.querySelectorAll('.form-field-expert');
+    const btnBeg = document.getElementById('btn-mode-beginner');
+    const btnExp = document.getElementById('btn-mode-expert');
+
+    if (mode === 'beginner') {
+      if (expertGroup) expertGroup.classList.add('hidden');
+      expertFields.forEach(f => f.classList.add('hidden'));
+      btnBeg.className = "px-2.5 py-1 text-xs font-semibold rounded-md bg-white text-[#F97316] shadow-xs";
+      btnExp.className = "px-2.5 py-1 text-xs font-semibold rounded-md text-[#8A7568]";
+    } else {
+      if (expertGroup) expertGroup.classList.remove('hidden');
+      expertFields.forEach(f => f.classList.remove('hidden'));
+      btnExp.className = "px-2.5 py-1 text-xs font-semibold rounded-md bg-white text-[#F97316] shadow-xs";
+      btnBeg.className = "px-2.5 py-1 text-xs font-semibold rounded-md text-[#8A7568]";
+    }
+  }
+
+  // Set default to beginner mode
+  setFormMode('beginner');
+
+  // Apply Presets
+  const presetsData = {{ presets | tojson }};
+  function applyPreset(name) {
+    const data = presetsData[name];
+    if (!data) return;
+
+    for (const [key, val] of Object.entries(data)) {
+      const el = document.getElementById(`f_${key}`);
+      if (el) el.value = val;
+    }
+
+    const ipMap = {
+      Normal: '192.168.1.105',
+      DoS: '45.142.212.18',
+      Probe: '185.220.101.42',
+      R2L: '103.251.167.9',
+      U2R: '192.168.1.198'
+    };
+    document.getElementById('field-source-ip').value = ipMap[name] || '192.168.1.1';
+    showToast(`Preset Loaded`, `Applied canonical ${name} signature parameters.`, 'info');
+  }
+
+  // Handle CSV Batch Upload
+  async function handleBatchUpload(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById('batch-file-input');
+    if (!fileInput.files.length) return;
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    const progressBox = document.getElementById('batch-progress-box');
+    const progressBar = document.getElementById('batch-progress-bar');
+    const progressPct = document.getElementById('batch-progress-pct');
+    const submitBtn = document.getElementById('btn-batch-submit');
+
+    progressBox.classList.remove('hidden');
+    progressBar.style.width = '35%';
+    progressPct.innerText = '35%';
+    submitBtn.disabled = true;
+
+    try {
+      const res = await fetch('/detect/batch', { method: 'POST', body: formData });
+      const data = await res.json();
+      
+      progressBar.style.width = '100%';
+      progressPct.innerText = '100%';
+
+      if (data.error) {
+        showToast('Batch Error', data.error, 'danger');
+        return;
+      }
+
+      currentBatchData = data.results || [];
+      renderBatchResults(data);
+      showToast('Batch Complete', `Analyzed ${data.total_records} sessions. Identified ${data.threats_detected} threats (${data.threat_percentage}%).`, 'success');
+
+    } catch (err) {
+      showToast('Error', 'Failed to process CSV file.', 'danger');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  function renderBatchResults(data) {
+    const container = document.getElementById('batch-results-container');
+    const tbody = document.getElementById('batch-results-tbody');
+    const title = document.getElementById('batch-results-title');
+    const subtitle = document.getElementById('batch-results-subtitle');
+
+    container.classList.remove('hidden');
+    title.innerText = `Batch Evaluation: ${data.total_records} Records Processed`;
+    subtitle.innerText = `Threat Frequency: ${data.threat_percentage}% (${data.threats_detected} attacks identified)`;
+
+    tbody.innerHTML = '';
+    data.results.forEach(r => {
+      const row = document.createElement('tr');
+      row.className = 'hover:bg-[#FFF8F0] transition-colors';
+      const isThreat = r.attack_type !== 'Normal';
+      row.innerHTML = `
+        <td class="py-2.5 px-3 font-mono text-[#8A7568]">#${r.row_index}</td>
+        <td class="py-2.5 px-3 font-mono font-medium">${r.source_ip}</td>
+        <td class="py-2.5 px-3">
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold border ${isThreat ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}">
+            ${r.attack_type}
+          </span>
+        </td>
+        <td class="py-2.5 px-3 font-mono">${r.confidence}%</td>
+        <td class="py-2.5 px-3 font-semibold ${r.risk_score >= 60 ? 'text-red-600' : (r.risk_score >= 30 ? 'text-amber-600' : 'text-emerald-600')}">${r.risk_score}</td>
+        <td class="py-2.5 px-3 text-[#8A7568]">${r.top_feature}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function downloadBatchResultsCSV() {
+    if (!currentBatchData.length) return;
+    let csv = "Row,SourceIP,Classification,Confidence,RiskScore,TopDriver\n";
+    currentBatchData.forEach(r => {
+      csv += `${r.row_index},${r.source_ip},${r.attack_type},${r.confidence},${r.risk_score},"${r.top_feature}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SentinelFlow_Batch_Results.csv`;
+    a.click();
+  }
+
+  // Stream controls
+  async function toggleStream(start) {
+    const btnStart = document.getElementById('btn-stream-start');
+    const btnStop = document.getElementById('btn-stream-stop');
+    const speed = document.getElementById('stream-speed-select').value;
+
+    const action = start ? 'start' : 'stop';
+    const form = new FormData();
+    form.append('speed', speed);
+
+    const res = await fetch(`/detect/stream/${action}`, { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (start) {
+      btnStart.classList.add('hidden');
+      btnStop.classList.remove('hidden');
+      isStreamActive = true;
+      showToast('Replay Started', `Streaming KDDTest+ records at ${speed}x speed.`, 'info');
+    } else {
+      btnStop.classList.add('hidden');
+      btnStart.classList.remove('hidden');
+      isStreamActive = false;
+      showToast('Replay Paused', 'Traffic stream stopped.', 'info');
+    }
+  }
+
+  async function changeStreamSpeed(speed) {
+    if (!isStreamActive) return;
+    const form = new FormData();
+    form.append('speed', speed);
+    await fetch('/detect/stream/speed', { method: 'POST', body: form });
+    showToast('Speed Updated', `Stream set to ${speed}x.`, 'info');
+  }
+
+  // Stream ticker updates from SocketIO
+  if (typeof io !== 'undefined') {
+    const sock = io();
+    sock.on('traffic_packet', (pkt) => {
+      const box = document.getElementById('stream-ticker-box');
+      if (!box) return;
+      const line = document.createElement('div');
+      line.className = 'text-[11px] leading-relaxed';
+      const color = pkt.attack_type !== 'Normal' ? '#FCA5A5' : '#86EFAC';
+      line.innerHTML = `<span style="color:#8A7568;">[${pkt.timestamp}]</span> <span style="color:#FED7AA;">${pkt.source_ip}</span> -> <span style="color:${color}; font-weight:bold;">${pkt.attack_type}</span> (Risk: ${pkt.risk_score}, Conf: ${pkt.confidence}%) // Proto: ${pkt.protocol}/${pkt.service}`;
+      box.insertBefore(line, box.firstChild);
+      if (box.children.length > 50) box.removeChild(box.lastChild);
+    });
+  }
+</script>
+{% endblock %}

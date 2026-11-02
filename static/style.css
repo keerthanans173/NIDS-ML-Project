@@ -1,0 +1,276 @@
+/* ==========================================================================
+   SentinelFlow — Modern Light Theme Design System
+   Palettes: Warm cream, amber, orange, red (no dark neon, no black backgrounds)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #FFF8F0;
+  --surface: #FFFFFF;
+  --panel: #FFEFD9;
+  --primary: #F97316;
+  --primary-hover: #EA580C;
+  --accent: #FBBF24;
+  --danger: #DC2626;
+  --soft-orange: #FED7AA;
+  --soft-red: #FCA5A5;
+  --soft-amber: #FEF3C7;
+  --soft-green: #DCFCE7;
+  --success: #16A34A;
+  --text: #3B2F2A;
+  --muted: #8A7568;
+  --border: #F3E5D8;
+  --border-strong: #E5D0C0;
+
+  /* Card and Depth System */
+  --radius-card: 16px;
+  --radius-pill: 9999px;
+  --shadow-sm: 0 2px 8px rgba(59, 47, 42, 0.04);
+  --shadow-warm: 0 8px 24px -4px rgba(249, 115, 22, 0.08), 0 2px 6px -1px rgba(59, 47, 42, 0.04);
+  --shadow-hover: 0 14px 30px -4px rgba(249, 115, 22, 0.14), 0 4px 10px -2px rgba(59, 47, 42, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Fraunces', Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Radar Sweep Animation for Live Monitoring Indicator */
+.radar-sweep-container {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.15) 0%, rgba(251, 191, 36, 0.05) 70%, transparent 100%);
+  border: 1.5px solid var(--soft-orange);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radar-sweep-container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: 50%;
+  border: 1px dashed rgba(249, 115, 22, 0.35);
+}
+
+.radar-sweeper {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 50%; height: 50%;
+  transform-origin: 0% 0%;
+  background: conic-gradient(from 0deg, rgba(249, 115, 22, 0.6) 0deg, transparent 60deg);
+  animation: radarRotate 2.5s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes radarRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.radar-blip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+  z-index: 2;
+  animation: blipPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes blipPulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+
+/* Card Styling */
+.card-sentinel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-warm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-sentinel:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.card-panel {
+  background: var(--panel);
+  border: 1px solid var(--soft-orange);
+  border-radius: var(--radius-card);
+}
+
+/* Warm Primary Gradient Buttons */
+.btn-primary-gradient {
+  background: linear-gradient(135deg, #F97316 0%, #FBBF24 100%);
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 10px 20px;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.25);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary-gradient:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.35);
+  background: linear-gradient(135deg, #EA580C 0%, #F59E0B 100%);
+}
+
+.btn-secondary-warm {
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  color: var(--text);
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 9px 18px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.btn-secondary-warm:hover {
+  background: var(--panel);
+  border-color: var(--soft-orange);
+  color: var(--primary);
+}
+
+/* Severity Badge Classes */
+.badge-critical {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
+}
+
+.badge-high {
+  background-color: #FFEDD5;
+  color: #C2410C;
+  border: 1px solid #FDBA74;
+}
+
+.badge-medium {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FCD34D;
+}
+
+.badge-low {
+  background-color: #FEF9C3;
+  color: #854D0E;
+  border: 1px solid #FDE047;
+}
+
+.badge-safe {
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+}
+
+/* Half Donut Risk Gauge Animation */
+.threat-gauge-wrapper {
+  position: relative;
+  width: 220px;
+  height: 130px;
+  margin: 0 auto;
+}
+
+.threat-gauge-val {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+/* Toast Notifications */
+#toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.sentinel-toast {
+  pointer-events: auto;
+  min-width: 320px;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 10px 25px rgba(59, 47, 42, 0.12);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.sentinel-toast.toast-danger {
+  border-left-color: var(--danger);
+}
+
+.sentinel-toast.toast-success {
+  border-left-color: var(--success);
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--soft-orange);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}

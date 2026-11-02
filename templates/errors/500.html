@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}500 — Internal Processing Error{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto my-16 text-center space-y-4">
+  <div class="w-16 h-16 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto text-2xl font-bold font-mono">
+    500
+  </div>
+  <h2 class="font-display font-bold text-2xl text-[#3B2F2A]">Sensor Pipeline Fault</h2>
+  <p class="text-xs text-[#8A7568]">An unhandled internal exception occurred during traffic evaluation.</p>
+  {% if error %}
+    <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 font-mono text-[11px] text-left overflow-x-auto">
+      {{ error }}
+    </div>
+  {% endif %}
+  <div class="pt-2">
+    <a href="/dashboard" class="btn-primary-gradient text-xs py-2 px-5 inline-flex">
+      Return to Operations Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}

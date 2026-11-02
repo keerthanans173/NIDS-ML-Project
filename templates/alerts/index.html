@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts & Triage — SentinelFlow NIDS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-display font-bold text-2xl sm:text-3xl text-[#3B2F2A]">Security Incident & Alert Center</h1>
+      <p class="text-xs sm:text-sm text-[#8A7568] mt-1">Triage flagged network events, review SHAP feature attributions, and manage simulated mitigations.</p>
+    </div>
+    
+    <!-- Count Badges -->
+    <div class="flex items-center gap-2">
+      <span class="px-3 py-1.5 rounded-xl bg-red-100 text-red-800 text-xs font-semibold border border-red-200">
+        {{ counts.new }} New
+      </span>
+      <span class="px-3 py-1.5 rounded-xl bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200">
+        {{ counts.investigating }} In Progress
+      </span>
+      <span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-semibold border border-emerald-200">
+        {{ counts.resolved }} Resolved
+      </span>
+    </div>
+  </div>
+
+  <!-- Filter Controls Bar -->
+  <div class="card-sentinel p-4 flex flex-col md:flex-row items-center justify-between gap-4 bg-[#FFFDFB]">
+    
+    <!-- Search -->
+    <form method="GET" action="/alerts" class="w-full md:w-80 relative">
+      <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#8A7568]"></i>
+      <input 
+        type="text" 
+        name="q" 
+        value="{{ search_query }}" 
+        placeholder="Filter by IP, attack vector, or reason..." 
+        class="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-[#F3E5D8] rounded-xl focus:outline-none focus:border-orange-500"
+      >
+    </form>
+
+    <!-- Severity & Status Selectors -->
+    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+      
+      <!-- Severity Filter -->
+      <div class="flex items-center gap-1.5 text-xs">
+        <span class="text-[#8A7568] font-medium">Severity:</span>
+        <div class="inline-flex rounded-lg border border-[#F3E5D8] p-0.5 bg-white text-xs">
+          <a href="/alerts?severity=all&status={{ current_status }}&q={{ search_query }}" class="px-2 py-0.5 rounded {% if current_severity == 'all' %}bg-orange-500 text-white font-bold{% else %}text-[#8A7568]{% endif %}">All</a>
+          <a href="/alerts?severity=Critical&status={{ current_status }}&q={{ search_query }}" class="px-2 py-0.5 rounded {% if current_severity == 'Critical' %}bg-red-600 text-white font-bold{% else %}text-[#8A7568]{% endif %}">Crit</a>
+          <a href="/alerts?severity=High&status={{ current_status }}&q={{ search_query }}" class="px-2 py-0.5 rounded {% if current_severity == 'High' %}bg-orange-500 text-white font-bold{% else %}text-[#8A7568]{% endif %}">High</a>
+          <a href="/alerts?severity=Medium&status={{ current_status }}&q={{ search_query }}" class="px-2 py-0.5 rounded {% if current_severity == 'Medium' %}bg-amber-500 text-white font-bold{% else %}text-[#8A7568]{% endif %}">Med</a>
+        </div>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="flex items-center gap-1.5 text-xs">
+        <span class="text-[#8A7568] font-medium">Status:</span>
+        <div class="inline-flex rounded-lg border border-[#F3E5D8] p-0.5 bg-white text-xs">
+          <a href="/alerts?severity={{ current_severity }}&status=all&q={{ search_query }}" class="px-2 py-0.5 rounded {% if current_status == 'all' %}bg-orange-500 text-white font-bold{% else %}text-[#8A7568]{% endif %}">All</a>
+          <a href="/alerts?severity={{ current_severity }}&status=New&q={{ search_query }}" class="px-2 py-0.5 rounded {% if current_status == 'New' %}bg-red-100 text-red-800 font-bold{% else %}text-[#8A7568]{% endif %}">New</a>
+          <a href="/alerts?severity={{ current_severity }}&status=Investigating&q={{ search_query }}" class="px-2 py-0.5 rounded {% if current_status == 'Investigating' %}bg-amber-100 text-amber-800 font-bold{% else %}text-[#8A7568]{% endif %}">Triage</a>
+          <a href="/alerts?severity={{ current_severity }}&status=Resolved&q={{ search_query }}" class="px-2 py-0.5 rounded {% if current_status == 'Resolved' %}bg-emerald-100 text-emerald-800 font-bold{% else %}text-[#8A7568]{% endif %}">Done</a>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Alerts Table -->
+  <div class="card-sentinel overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-[#F3E5D8] text-[#8A7568] uppercase text-[10px] tracking-wider font-semibold bg-[#FFFDFB]">
+            <th class="py-3 px-3">ID</th>
+            <th class="py-3 px-3">Detected Time</th>
+            <th class="py-3 px-3">Attack Vector</th>
+            <th class="py-3 px-3">Severity</th>
+            <th class="py-3 px-3">Risk Score</th>
+            <th class="py-3 px-3">Source IP</th>
+            <th class="py-3 px-3">Triage Status</th>
+            <th class="py-3 px-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F3E5D8]">
+          {% for alert in alerts %}
+            <tr class="hover:bg-[#FFF8F0] transition-colors">
+              <td class="py-3 px-3 font-mono text-[#8A7568]">#{{ alert.id }}</td>
+              <td class="py-3 px-3 font-mono text-[#8A7568]">{{ alert.created_at }}</td>
+              <td class="py-3 px-3 font-semibold text-[#3B2F2A]">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full {% if alert.severity == 'Critical' %}bg-red-600{% elif alert.severity == 'High' %}bg-orange-500{% elif alert.severity == 'Medium' %}bg-amber-500{% else %}bg-emerald-500{% endif %}"></span>
+                  <span>{{ alert.attack_type }}</span>
+                </div>
+              </td>
+              <td class="py-3 px-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {% if alert.severity == 'Critical' %}badge-critical{% elif alert.severity == 'High' %}badge-high{% elif alert.severity == 'Medium' %}badge-medium{% else %}badge-safe{% endif %}">
+                  {{ alert.severity }}
+                </span>
+              </td>
+              <td class="py-3 px-3 font-bold font-mono {% if alert.risk_score >= 60 %}text-red-600{% elif alert.risk_score >= 30 %}text-amber-600{% else %}text-emerald-600{% endif %}">
+                {{ alert.risk_score }}
+              </td>
+              <td class="py-3 px-3 font-mono font-medium">{{ alert.source_ip }}</td>
+              <td class="py-3 px-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border {% if alert.status == 'New' %}bg-red-50 text-red-700 border-red-200{% elif alert.status == 'Investigating' %}bg-amber-50 text-amber-700 border-amber-200{% elif alert.status == 'Resolved' %}bg-emerald-50 text-emerald-700 border-emerald-200{% else %}bg-stone-100 text-stone-700 border-stone-200{% endif %}">
+                  {{ alert.status }}
+                </span>
+              </td>
+              <td class="py-3 px-3 text-right">
+                <button onclick="openTriageModal({{ alert.id }})" class="text-xs font-semibold text-orange-600 hover:text-orange-800">
+                  Inspect & Triage →
+                </button>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="8" class="py-12 text-center text-[#8A7568]">
+                No security incidents matching current filter criteria.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Simulated Mitigated IPs Table -->
+  <div class="card-sentinel p-5 space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="font-display font-bold text-base text-[#3B2F2A] flex items-center gap-2">
+          <i data-lucide="shield-ban" class="w-4 h-4 text-purple-700"></i>
+          <span>Simulated Active IP Blocklist</span>
+        </h3>
+        <p class="text-xs text-[#8A7568]">Enforced firewall rules and automated drop commands generated by SentinelFlow</p>
+      </div>
+      <span class="text-xs font-mono text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-lg">
+        Mode: Non-Disruptive Simulation
+      </span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-[#F3E5D8] text-[#8A7568] uppercase text-[10px] tracking-wider font-semibold bg-[#FFFDFB]">
+            <th class="py-2.5 px-3">Target IP</th>
+            <th class="py-2.5 px-3">Trigger Vector</th>
+            <th class="py-2.5 px-3">Mitigation Reason</th>
+            <th class="py-2.5 px-3">Expires At</th>
+            <th class="py-2.5 px-3">Firewall Command (Preview)</th>
+            <th class="py-2.5 px-3 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F3E5D8]">
+          {% for b in blocked_ips %}
+            <tr class="hover:bg-[#FFF8F0] transition-colors">
+              <td class="py-2.5 px-3 font-mono font-bold text-red-700">{{ b.ip_address }}</td>
+              <td class="py-2.5 px-3">{{ b.attack_type }}</td>
+              <td class="py-2.5 px-3 text-[#8A7568]">{{ b.reason }}</td>
+              <td class="py-2.5 px-3 font-mono text-[#8A7568]">{{ b.expires_at }}</td>
+              <td class="py-2.5 px-3 font-mono text-[10px] text-[#8A7568] truncate max-w-xs" title="{{ b.command_run }}">
+                {{ b.command_run.split('\n')[1] if b.command_run else 'iptables DROP' }}
+              </td>
+              <td class="py-2.5 px-3 text-right">
+                {% if b.status == 'Active' %}
+                  <button onclick="unblockIP({{ b.id }})" class="text-xs text-orange-600 hover:underline font-semibold">
+                    Revoke
+                  </button>
+                {% else %}
+                  <span class="text-[10px] text-stone-400">Revoked</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="6" class="py-6 text-center text-[#8A7568]">
+                No active mitigation rules in effect.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ================= MODAL: TRIAGE & SHAP EXPLAINER DRAWER ================= -->
+<div id="triage-modal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white border border-[#F3E5D8] rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+    
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between pb-3 border-b border-[#F3E5D8]">
+      <div>
+        <span class="text-xs font-bold text-orange-600 uppercase tracking-wider block" id="modal-alert-id">Alert Inspection</span>
+        <h3 class="font-display font-bold text-xl text-[#3B2F2A]" id="modal-alert-title">Incident Analysis</h3>
+      </div>
+      <button onclick="closeTriageModal()" class="w-8 h-8 rounded-full bg-[#FFF8F0] border border-[#F3E5D8] flex items-center justify-center text-[#8A7568] hover:text-[#3B2F2A]">
+        &times;
+      </button>
+    </div>
+
+    <!-- SHAP Plain-English Explanation -->
+    <div class="p-4 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8] space-y-2">
+      <div class="flex items-center gap-2 text-xs font-bold text-orange-600 uppercase tracking-wider">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <span>Why Was This Flagged? (SHAP Attribution)</span>
+      </div>
+      <p class="text-xs text-[#3B2F2A] leading-relaxed" id="modal-alert-explanation">
+        Loading feature attribution...
+      </p>
+    </div>
+
+    <!-- Top Features Waterfall -->
+    <div class="space-y-2">
+      <span class="text-xs font-semibold text-[#8A7568] block">Top Contributing Feature Drivers:</span>
+      <div id="modal-features-list" class="space-y-2">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+
+    <!-- Triage Workflow Form -->
+    <form onsubmit="handleTriageSubmit(event)" class="space-y-4 pt-2 border-t border-[#F3E5D8]">
+      <input type="hidden" id="modal-input-alert-id">
+      
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs font-semibold text-[#3B2F2A] block mb-1">Status Workflow:</label>
+          <select id="modal-select-status" class="w-full text-xs py-2 px-3 rounded-lg border border-[#F3E5D8] bg-white">
+            <option value="New">New (Unreviewed)</option>
+            <option value="Investigating">Investigating (In Progress)</option>
+            <option value="Resolved">Resolved (Mitigated)</option>
+            <option value="False Positive">False Positive</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-[#3B2F2A] block mb-1">Simulate Mitigation:</label>
+          <button type="button" onclick="modalBlockIPAction()" class="w-full btn-secondary-warm text-xs py-2 justify-center text-red-600 border-red-200 hover:bg-red-50">
+            <i data-lucide="shield-ban" class="w-3.5 h-3.5"></i>
+            <span>Add Source IP to Blocklist</span>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold text-[#3B2F2A] block mb-1">Analyst Investigation Notes:</label>
+        <textarea id="modal-textarea-notes" rows="3" placeholder="Enter findings, verification details, or sign-off notes..." class="w-full text-xs p-3 rounded-lg border border-[#F3E5D8] bg-white focus:outline-none focus:border-orange-500"></textarea>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" onclick="closeTriageModal()" class="btn-secondary-warm text-xs py-2 px-4">Close</button>
+        <button type="submit" class="btn-primary-gradient text-xs py-2 px-5">Save Status & Notes</button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let currentModalAlert = null;
+
+  async function openTriageModal(alertId) {
+    const modal = document.getElementById('triage-modal');
+    modal.classList.remove('hidden');
+
+    try {
+      const res = await fetch(`/api/alerts/${alertId}`);
+      const data = await res.json();
+      currentModalAlert = data;
+
+      document.getElementById('modal-alert-id').innerText = `Alert #${data.id} • ${data.severity} Severity`;
+      document.getElementById('modal-alert-title').innerText = `${data.attack_type} Threat from ${data.source_ip}`;
+      document.getElementById('modal-alert-explanation').innerText = data.explanation || "Classified according to standard model risk clusters.";
+      document.getElementById('modal-input-alert-id').value = data.id;
+      document.getElementById('modal-select-status').value = data.status || 'New';
+      document.getElementById('modal-textarea-notes').value = data.analyst_notes || '';
+
+      const featList = document.getElementById('modal-features-list');
+      featList.innerHTML = '';
+
+      if (data.parsed_features && data.parsed_features.length) {
+        data.parsed_features.forEach(f => {
+          const item = document.createElement('div');
+          item.className = 'flex items-center justify-between p-2 rounded-lg bg-[#FFF8F0] border border-[#F3E5D8] text-xs';
+          item.innerHTML = `
+            <div>
+              <span class="font-medium text-[#3B2F2A]">${f.friendly_name || f.feature}</span>
+              <span class="text-[10px] text-[#8A7568] ml-1.5 font-mono">value: ${f.raw_value}</span>
+            </div>
+            <span class="font-mono font-bold ${f.impact === 'positive' ? 'text-red-600' : 'text-emerald-600'}">
+              ${f.importance >= 0 ? '+' : ''}${f.importance}
+            </span>
+          `;
+          featList.appendChild(item);
+        });
+      } else {
+        featList.innerHTML = '<span class="text-xs text-[#8A7568] italic">No high-order feature deviations recorded.</span>';
+      }
+
+    } catch (e) {
+      showToast('Error', 'Could not fetch alert details.', 'danger');
+    }
+  }
+
+  function closeTriageModal() {
+    document.getElementById('triage-modal').classList.add('hidden');
+  }
+
+  async function handleTriageSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('modal-input-alert-id').value;
+    const status = document.getElementById('modal-select-status').value;
+    const notes = document.getElementById('modal-textarea-notes').value;
+
+    const res = await fetch(`/api/alerts/${id}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: status, notes: notes })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Updated', `Alert #${id} status changed to ${status}.`, 'success');
+      closeTriageModal();
+      setTimeout(() => location.reload(), 600);
+    }
+  }
+
+  async function modalBlockIPAction() {
+    if (!currentModalAlert) return;
+    const res = await fetch('/api/alerts/block-ip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ip_address: currentModalAlert.source_ip,
+        attack_type: currentModalAlert.attack_type,
+        reason: `Flagged in Alert #${currentModalAlert.id}`
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Mitigated', `Simulated firewall rule generated for ${currentModalAlert.source_ip}.`, 'danger');
+      closeTriageModal();
+      setTimeout(() => location.reload(), 600);
+    }
+  }
+
+  async function unblockIP(id) {
+    const res = await fetch(`/api/alerts/unblock-ip/${id}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Revoked', data.message, 'info');
+      setTimeout(() => location.reload(), 500);
+    }
+  }
+</script>
+{% endblock %}

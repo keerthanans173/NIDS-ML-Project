@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Register Operator — SentinelFlow NIDS{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto my-12">
+  <div class="card-sentinel p-8 space-y-6 bg-white shadow-lg">
+    
+    <div class="text-center space-y-2">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center text-white mx-auto shadow-md">
+        <i data-lucide="user-plus" class="w-6 h-6"></i>
+      </div>
+      <h2 class="font-display font-bold text-2xl text-[#3B2F2A]">Register Operator</h2>
+      <p class="text-xs text-[#8A7568]">Create a new access role for SentinelFlow</p>
+    </div>
+
+    <form method="POST" action="/auth/register" class="space-y-4">
+      <div>
+        <label class="text-xs font-semibold text-[#3B2F2A] block mb-1">Username</label>
+        <input type="text" name="username" required placeholder="analyst_jane" class="w-full text-xs py-2 px-3 rounded-xl border border-[#F3E5D8] bg-white focus:outline-none focus:border-orange-500">
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-[#3B2F2A] block mb-1">Password</label>
+        <input type="password" name="password" required placeholder="••••••••" class="w-full text-xs py-2 px-3 rounded-xl border border-[#F3E5D8] bg-white focus:outline-none focus:border-orange-500">
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-[#3B2F2A] block mb-1">Role Permission</label>
+        <select name="role" class="w-full text-xs py-2 px-3 rounded-xl border border-[#F3E5D8] bg-white">
+          <option value="Analyst">Analyst (Triage & Mitigate)</option>
+          <option value="Viewer">Viewer (Read-only)</option>
+          <option value="Admin">Admin (Full Control)</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-primary-gradient w-full py-2.5 text-xs justify-center shadow-md">
+        Create Account
+      </button>
+    </form>
+
+    <div class="text-center text-xs text-[#8A7568]">
+      <span>Already have access? </span>
+      <a href="/auth/login" class="text-orange-600 font-semibold hover:underline">Sign In</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

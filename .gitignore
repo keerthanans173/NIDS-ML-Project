@@ -1,0 +1,35 @@
+# Python Bytecode and Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Environment Variables & Secrets
+.env
+.env.local
+
+# Database files
+instance/
+*.db-journal
+
+# ML Large artifacts generated at runtime (keep base models)
+app/ml/__pycache__/
+
+# Distribution & Packaging
+build/
+dist/
+*.egg-info/
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Artifacts
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store

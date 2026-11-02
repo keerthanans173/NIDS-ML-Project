@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SentinelFlow — Modern Explainable NIDS{% endblock %}</title>
+  <meta name="description" content="SentinelFlow: High-fidelity, explainable Network Intrusion Detection System powered by machine learning, SHAP feature attributions, and real-time telemetry streaming.">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'sentinel-bg': '#FFF8F0',
+            'sentinel-surface': '#FFFFFF',
+            'sentinel-panel': '#FFEFD9',
+            'sentinel-primary': '#F97316',
+            'sentinel-accent': '#FBBF24',
+            'sentinel-danger': '#DC2626',
+            'sentinel-text': '#3B2F2A',
+            'sentinel-muted': '#8A7568',
+            'sentinel-border': '#F3E5D8',
+            'sentinel-soft-orange': '#FED7AA'
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Fraunces', 'Georgia', 'serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Socket.IO Client -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Custom SentinelFlow Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-[#FFF8F0] text-[#3B2F2A] flex h-screen overflow-hidden">
+
+  <!-- ================= LEFT SIDEBAR ================= -->
+  <aside class="w-64 bg-white border-r border-[#F3E5D8] flex flex-col justify-between flex-shrink-0 z-20 shadow-sm">
+    <!-- Brand & Header -->
+    <div>
+      <div class="p-5 border-b border-[#F3E5D8] flex items-center justify-between">
+        <a href="/dashboard" class="flex items-center gap-3 no-underline group">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform">
+            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <span class="font-display font-bold text-lg text-[#3B2F2A] block leading-tight tracking-tight">SentinelFlow</span>
+            <span class="text-[11px] font-mono text-[#F97316] font-semibold uppercase tracking-wider">NIDS • v2.4 Live</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav class="p-3 space-y-1 text-sm font-medium">
+        <a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all {% if request.path == '/dashboard' %}bg-[#FFEFD9] text-[#F97316] font-semibold shadow-xs{% else %}text-[#8A7568] hover:bg-[#FFF8F0] hover:text-[#3B2F2A]{% endif %}">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <a href="/detect" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all {% if request.path in ('/', '/detect') %}bg-[#FFEFD9] text-[#F97316] font-semibold shadow-xs{% else %}text-[#8A7568] hover:bg-[#FFF8F0] hover:text-[#3B2F2A]{% endif %}">
+          <i data-lucide="scan" class="w-4 h-4"></i>
+          <span>Detect Studio</span>
+        </a>
+
+        <a href="/alerts" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all {% if '/alerts' in request.path %}bg-[#FFEFD9] text-[#F97316] font-semibold shadow-xs{% else %}text-[#8A7568] hover:bg-[#FFF8F0] hover:text-[#3B2F2A]{% endif %}">
+          <i data-lucide="bell-ring" class="w-4 h-4"></i>
+          <span>Alerts & Triage</span>
+        </a>
+
+        <a href="/simulator" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all {% if '/simulator' in request.path %}bg-[#FFEFD9] text-[#F97316] font-semibold shadow-xs{% else %}text-[#8A7568] hover:bg-[#FFF8F0] hover:text-[#3B2F2A]{% endif %}">
+          <i data-lucide="zap" class="w-4 h-4"></i>
+          <span>Attack Simulator</span>
+        </a>
+
+        <a href="/model-lab" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all {% if '/model-lab' in request.path %}bg-[#FFEFD9] text-[#F97316] font-semibold shadow-xs{% else %}text-[#8A7568] hover:bg-[#FFF8F0] hover:text-[#3B2F2A]{% endif %}">
+          <i data-lucide="cpu" class="w-4 h-4"></i>
+          <span>Model Lab</span>
+        </a>
+
+        <a href="/reports" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all {% if '/reports' in request.path %}bg-[#FFEFD9] text-[#F97316] font-semibold shadow-xs{% else %}text-[#8A7568] hover:bg-[#FFF8F0] hover:text-[#3B2F2A]{% endif %}">
+          <i data-lucide="file-text" class="w-4 h-4"></i>
+          <span>Reports & Intel</span>
+        </a>
+
+        <a href="/history" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all {% if '/history' in request.path %}bg-[#FFEFD9] text-[#F97316] font-semibold shadow-xs{% else %}text-[#8A7568] hover:bg-[#FFF8F0] hover:text-[#3B2F2A]{% endif %}">
+          <i data-lucide="history" class="w-4 h-4"></i>
+          <span>Audit History</span>
+        </a>
+
+        <a href="/settings" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all {% if '/settings' in request.path %}bg-[#FFEFD9] text-[#F97316] font-semibold shadow-xs{% else %}text-[#8A7568] hover:bg-[#FFF8F0] hover:text-[#3B2F2A]{% endif %}">
+          <i data-lucide="sliders" class="w-4 h-4"></i>
+          <span>Settings</span>
+        </a>
+
+        <a href="/about" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all {% if '/about' in request.path %}bg-[#FFEFD9] text-[#F97316] font-semibold shadow-xs{% else %}text-[#8A7568] hover:bg-[#FFF8F0] hover:text-[#3B2F2A]{% endif %}">
+          <i data-lucide="info" class="w-4 h-4"></i>
+          <span>About & Specs</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Bottom Widget: Radar Sweep Sensor Status & Quick Role Switcher -->
+    <div class="p-4 border-t border-[#F3E5D8] space-y-3 bg-[#FFFDFB]">
+      <!-- Radar Sweep Indicator Card -->
+      <div class="card-panel p-3 flex items-center gap-3">
+        <div class="radar-sweep-container">
+          <div class="radar-sweeper"></div>
+          <div class="radar-blip"></div>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-[#F97316] uppercase tracking-wider">Live Sensor</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          </div>
+          <span class="text-[11px] text-[#8A7568] block">NSL-KDD Ingest Active</span>
+        </div>
+      </div>
+
+      <!-- Quick Role Switcher for Evaluator -->
+      <div class="text-[11px] text-[#8A7568] flex items-center justify-between px-1">
+        <span>Role: <strong class="text-[#3B2F2A]">{% if current_user.is_authenticated %}{{ current_user.role }}{% else %}Analyst{% endif %}</strong></span>
+        <div class="flex gap-1 text-[10px]">
+          <a href="/auth/demo-login/admin" class="hover:underline text-orange-600 font-medium">Admin</a>
+          <span>•</span>
+          <a href="/auth/demo-login/analyst" class="hover:underline text-amber-600 font-medium">Analyst</a>
+          <span>•</span>
+          <a href="/auth/demo-login/viewer" class="hover:underline text-stone-600 font-medium">Viewer</a>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTENT WRAPPER ================= -->
+  <div class="flex-1 flex flex-col h-screen overflow-hidden">
+    
+    <!-- Top Bar -->
+    <header class="h-16 bg-white border-b border-[#F3E5D8] flex items-center justify-between px-6 flex-shrink-0 z-10">
+      <!-- Search Input -->
+      <div class="relative w-80">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A7568]"></i>
+        <input 
+          type="text" 
+          id="global-search-input"
+          placeholder="Search IPs, attack signatures, flags... (Ctrl+K)" 
+          class="w-full pl-9 pr-12 py-1.5 text-xs bg-[#FFF8F0] border border-[#F3E5D8] rounded-xl focus:outline-none focus:border-[#F97316] transition-colors text-[#3B2F2A]"
+        >
+        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#8A7568] bg-white px-1.5 py-0.5 rounded border border-[#E5D0C0]">/</span>
+      </div>
+
+      <!-- Right Topbar Badges & Actions -->
+      <div class="flex items-center gap-4">
+        <!-- Sensor Latency Chip -->
+        <div id="sensor-status-indicator" class="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          <span>SENSOR ACTIVE</span>
+        </div>
+
+        <!-- Sensitivity Chip -->
+        <a href="/settings" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium hover:bg-amber-100 transition-colors">
+          <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-amber-600"></i>
+          <span>Sensitivity: <strong>Normal</strong></span>
+        </a>
+
+        <!-- Quick Simulator Burst Button -->
+        <a href="/simulator" class="btn-primary-gradient text-xs py-1.5 px-3.5 shadow-sm">
+          <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+          <span>Simulate Attack</span>
+        </a>
+
+        <!-- User Profile Pill -->
+        <div class="flex items-center gap-2 pl-2 border-l border-[#F3E5D8]">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-200 to-orange-200 border border-orange-300 flex items-center justify-center font-bold text-xs text-orange-900">
+            {% if current_user.is_authenticated %}{{ current_user.username[0]|upper }}{% else %}A{% endif %}
+          </div>
+          {% if current_user.is_authenticated %}
+            <a href="/auth/logout" class="text-xs text-[#8A7568] hover:text-red-600 transition-colors font-medium" title="Sign Out">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+
+    <!-- Flash Messages Container -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="px-6 pt-4 flex-shrink-0">
+          {% for category, message in messages %}
+            <div class="p-3 mb-2 rounded-xl text-xs font-medium flex items-center justify-between {% if category == 'danger' %}bg-red-50 text-red-800 border border-red-200{% elif category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% else %}bg-amber-50 text-amber-800 border border-amber-200{% endif %}">
+              <span>{{ message }}</span>
+              <button onclick="this.parentElement.remove()" class="text-stone-400 hover:text-stone-700">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Main Scrollable Body Content -->
+    <main class="flex-1 overflow-y-auto p-6">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+
+  <!-- Realtime Toast Notifications Container -->
+  <div id="toast-container"></div>
+
+  <!-- SentinelFlow Core Scripts -->
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

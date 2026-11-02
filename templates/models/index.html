@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block title %}Model Lab — SentinelFlow NIDS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-display font-bold text-2xl sm:text-3xl text-[#3B2F2A]">Model Evaluation & Intelligence Lab</h1>
+      <p class="text-xs sm:text-sm text-[#8A7568] mt-1">Honest benchmark metrics computed on NSL-KDD test set (22,544 rows), feature importances, and model comparison.</p>
+    </div>
+    
+    <!-- Retrain Trigger Button -->
+    <button id="btn-retrain" onclick="startModelRetrain()" class="btn-primary-gradient text-xs py-2 px-4 shadow-sm">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      <span>Retrain & Re-benchmark</span>
+    </button>
+  </div>
+
+  <!-- Retraining Progress Banner (Hidden by default) -->
+  <div id="retrain-progress-card" class="card-sentinel p-4 hidden border-l-4 border-l-orange-500 bg-[#FFFDFB]">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <i data-lucide="loader" class="w-4 h-4 text-orange-600 animate-spin"></i>
+        <span class="text-xs font-bold text-[#3B2F2A]" id="retrain-status-text">Retraining in progress...</span>
+      </div>
+      <span class="text-xs font-mono font-bold text-orange-600" id="retrain-progress-pct">0%</span>
+    </div>
+    <div class="w-full bg-[#F3E5D8] h-2 rounded-full overflow-hidden">
+      <div id="retrain-progress-bar" class="h-full bg-gradient-to-r from-orange-500 to-amber-400 w-0 transition-all duration-300"></div>
+    </div>
+  </div>
+
+  <!-- Model Selection Badge & Overall Test Metrics (5 Cards) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    
+    <div class="card-sentinel p-4 bg-gradient-to-br from-white to-orange-50/50">
+      <span class="text-[11px] font-semibold text-[#8A7568] uppercase tracking-wider block">Selected Classifier</span>
+      <div class="text-xl font-display font-bold text-[#3B2F2A] mt-1">{{ data.selected_model }}</div>
+      <span class="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full mt-2 inline-block">Best Macro-F1</span>
+    </div>
+
+    <div class="card-sentinel p-4">
+      <span class="text-[11px] font-semibold text-[#8A7568] uppercase tracking-wider block">Test Set Accuracy</span>
+      <div class="text-2xl font-display font-bold text-[#3B2F2A] mt-1">{{ "%.2f"|format(data.best_metrics.accuracy * 100) }}%</div>
+      <span class="text-[11px] text-[#8A7568] mt-1 block">22,544 test packets</span>
+    </div>
+
+    <div class="card-sentinel p-4">
+      <span class="text-[11px] font-semibold text-[#8A7568] uppercase tracking-wider block">Macro-F1 Score</span>
+      <div class="text-2xl font-display font-bold text-orange-600 mt-1">{{ "%.4f"|format(data.best_metrics.macro_f1) }}</div>
+      <span class="text-[11px] text-[#8A7568] mt-1 block">Unweighted class mean</span>
+    </div>
+
+    <div class="card-sentinel p-4">
+      <span class="text-[11px] font-semibold text-[#8A7568] uppercase tracking-wider block">ROC-AUC (OVR)</span>
+      <div class="text-2xl font-display font-bold text-amber-600 mt-1">{{ "%.4f"|format(data.best_metrics.roc_auc) }}</div>
+      <span class="text-[11px] text-[#8A7568] mt-1 block">Multi-class area under curve</span>
+    </div>
+
+    <div class="card-sentinel p-4">
+      <span class="text-[11px] font-semibold text-[#8A7568] uppercase tracking-wider block">Macro Precision / Recall</span>
+      <div class="text-lg font-display font-bold text-[#3B2F2A] mt-1">
+        {{ "%.1f"|format(data.best_metrics.macro_precision * 100) }}% / {{ "%.1f"|format(data.best_metrics.macro_recall * 100) }}%
+      </div>
+      <span class="text-[11px] text-[#8A7568] mt-1 block">Minority class penalty</span>
+    </div>
+
+  </div>
+
+  <!-- Model Comparison Benchmarking Table -->
+  <div class="card-sentinel p-5 space-y-4">
+    <div>
+      <h3 class="font-display font-bold text-base text-[#3B2F2A]">Model Architecture Comparison (NSL-KDD Test Set)</h3>
+      <p class="text-xs text-[#8A7568]">Benchmarking supervised classifiers and anomaly isolation boundaries</p>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-[#F3E5D8] text-[#8A7568] uppercase text-[10px] tracking-wider font-semibold bg-[#FFFDFB]">
+            <th class="py-2.5 px-3">Algorithm</th>
+            <th class="py-2.5 px-3">Accuracy</th>
+            <th class="py-2.5 px-3">Macro-F1</th>
+            <th class="py-2.5 px-3">Weighted-F1</th>
+            <th class="py-2.5 px-3">ROC-AUC</th>
+            <th class="py-2.5 px-3">Training Time</th>
+            <th class="py-2.5 px-3 text-right">Selection Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F3E5D8]">
+          {% for model_name, m in data.models_compared.items() %}
+            <tr class="hover:bg-[#FFF8F0] transition-colors {% if model_name == data.selected_model %}bg-orange-50/30{% endif %}">
+              <td class="py-3 px-3 font-bold text-[#3B2F2A] flex items-center gap-2">
+                <i data-lucide="cpu" class="w-4 h-4 text-orange-600"></i>
+                <span>{{ model_name }}</span>
+              </td>
+              <td class="py-3 px-3 font-mono">{{ "%.2f"|format(m.accuracy * 100) }}%</td>
+              <td class="py-3 px-3 font-mono font-bold text-orange-700">{{ "%.4f"|format(m.macro_f1) }}</td>
+              <td class="py-3 px-3 font-mono">{{ "%.4f"|format(m.weighted_f1) }}</td>
+              <td class="py-3 px-3 font-mono">{{ "%.4f"|format(m.roc_auc) }}</td>
+              <td class="py-3 px-3 font-mono text-[#8A7568]">{{ m.training_time }}s</td>
+              <td class="py-3 px-3 text-right">
+                {% if model_name == data.selected_model %}
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                    ★ Active Pipeline
+                  </span>
+                {% else %}
+                  <span class="text-[10px] text-[#8A7568]">Evaluated</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Charts Row: Confusion Matrix & ROC Curves -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Confusion Matrix Heatmap -->
+    <div class="card-sentinel p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="font-display font-bold text-base text-[#3B2F2A]">Confusion Matrix Heatmap</h3>
+          <p class="text-xs text-[#8A7568]">Normalized prediction vs ground truth on test split</p>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto pt-2">
+        <table class="w-full text-center text-xs border border-[#F3E5D8]">
+          <thead>
+            <tr class="bg-[#FFFDFB] text-[10px] uppercase tracking-wider text-[#8A7568] font-bold">
+              <th class="p-2 border border-[#F3E5D8]">Actual \ Pred</th>
+              {% for c in data.best_metrics.class_names %}
+                <th class="p-2 border border-[#F3E5D8]">{{ c }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in data.best_metrics.confusion_matrix %}
+              {% set outer_loop = loop %}
+              <tr>
+                <td class="p-2 font-bold text-[#3B2F2A] bg-[#FFFDFB] border border-[#F3E5D8] text-left">
+                  {{ data.best_metrics.class_names[loop.index0] }}
+                </td>
+                {% for val in row %}
+                  {% set norm_val = data.best_metrics.confusion_matrix_norm[outer_loop.index0][loop.index0] %}
+                  <td class="p-2 border border-[#F3E5D8] font-mono text-xs" style="background-color: rgba(249, 115, 22, {{ norm_val * 0.7 + 0.05 }}); color: {{ '#FFFFFF' if norm_val > 0.5 else '#3B2F2A' }};">
+                    {{ val }}<br/>
+                    <span class="text-[9px] opacity-80">({{ (norm_val * 100)|round(1) }}%)</span>
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ROC Curves Chart -->
+    <div class="card-sentinel p-5 flex flex-col justify-between">
+      <div>
+        <h3 class="font-display font-bold text-base text-[#3B2F2A]">Multi-Class ROC Curves (OVR)</h3>
+        <p class="text-xs text-[#8A7568] mb-3">True Positive Rate vs False Positive Rate per attack class</p>
+      </div>
+      <div class="h-64">
+        <canvas id="rocCurvesChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Feature Importance Ranking Chart -->
+  <div class="card-sentinel p-5 space-y-3">
+    <div>
+      <h3 class="font-display font-bold text-base text-[#3B2F2A]">Global Feature Importance (Top 15 Drivers)</h3>
+      <p class="text-xs text-[#8A7568]">Relative information gain calculated across decision tree splits</p>
+    </div>
+    <div class="h-60">
+      <canvas id="featureImportanceChart"></canvas>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // 1. ROC Curves Chart
+  const rocData = {{ data.best_metrics.roc_curves | tojson }};
+  const rocCtx = document.getElementById('rocCurvesChart').getContext('2d');
+  
+  const classColors = {
+    Normal: '#22C55E',
+    DoS: '#EF4444',
+    Probe: '#F59E0B',
+    R2L: '#F97316',
+    U2R: '#7C2D12'
+  };
+
+  const rocDatasets = [];
+  for (const [cls, coords] of Object.entries(rocData)) {
+    const points = coords.fpr.map((fprVal, i) => ({ x: fprVal, y: coords.tpr[i] }));
+    rocDatasets.push({
+      label: cls,
+      data: points,
+      borderColor: classColors[cls] || '#F97316',
+      borderWidth: 2,
+      fill: false,
+      pointRadius: 0
+    });
+  }
+
+  // Baseline diagonal
+  rocDatasets.push({
+    label: 'Random Guess',
+    data: [{x:0, y:0}, {x:1, y:1}],
+    borderColor: '#D1D5DB',
+    borderWidth: 1.5,
+    borderDash: [5, 5],
+    fill: false,
+    pointRadius: 0
+  });
+
+  new Chart(rocCtx, {
+    type: 'scatter',
+    data: { datasets: rocDatasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      showLine: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+      },
+      scales: {
+        x: { title: { display: true, text: 'False Positive Rate (FPR)', font: { size: 10 } }, min: 0, max: 1 },
+        y: { title: { display: true, text: 'True Positive Rate (TPR)', font: { size: 10 } }, min: 0, max: 1 }
+      }
+    }
+  });
+
+  // 2. Feature Importance Chart
+  const featData = {{ data.feature_importance | tojson }};
+  const featCtx = document.getElementById('featureImportanceChart').getContext('2d');
+
+  new Chart(featCtx, {
+    type: 'bar',
+    data: {
+      labels: featData.map(d => d.feature),
+      datasets: [{
+        label: 'Gain Importance',
+        data: featData.map(d => d.score),
+        backgroundColor: '#F97316',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 45 } },
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  // Retrain Trigger
+  async function startModelRetrain() {
+    const btn = document.getElementById('btn-retrain');
+    btn.disabled = true;
+
+    const card = document.getElementById('retrain-progress-card');
+    const bar = document.getElementById('retrain-progress-bar');
+    const pct = document.getElementById('retrain-progress-pct');
+    const statusText = document.getElementById('retrain-status-text');
+
+    card.classList.remove('hidden');
+
+    try {
+      const res = await fetch('/api/model/retrain', { method: 'POST' });
+      const data = await res.json();
+
+      showToast('Retraining Started', 'Background ML pipeline job initialized.', 'info');
+
+      // Poll progress
+      const pollTimer = setInterval(async () => {
+        const pollRes = await fetch('/api/model/retrain/status');
+        const st = await pollRes.json();
+
+        bar.style.width = `${st.progress}%`;
+        pct.innerText = `${st.progress}%`;
+        statusText.innerText = st.status_message;
+
+        if (!st.is_retraining && st.progress >= 100) {
+          clearInterval(pollTimer);
+          btn.disabled = false;
+          showToast('Retraining Complete!', 'Model re-evaluated on test set.', 'success');
+          setTimeout(() => location.reload(), 1200);
+        } else if (st.error) {
+          clearInterval(pollTimer);
+          btn.disabled = false;
+          showToast('Retrain Error', st.error, 'danger');
+        }
+      }, 1000);
+
+    } catch (e) {
+      btn.disabled = false;
+      showToast('Error', 'Failed to trigger retraining.', 'danger');
+    }
+  }
+</script>
+{% endblock %}

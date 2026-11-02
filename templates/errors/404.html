@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}404 — Endpoint Not Found{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto my-16 text-center space-y-4">
+  <div class="w-16 h-16 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto text-2xl font-bold font-mono">
+    404
+  </div>
+  <h2 class="font-display font-bold text-2xl text-[#3B2F2A]">Telemetry Endpoint Not Found</h2>
+  <p class="text-xs text-[#8A7568]">The requested routing resource does not exist or has been relocated.</p>
+  <div class="pt-2">
+    <a href="/dashboard" class="btn-primary-gradient text-xs py-2 px-5 inline-flex">
+      Return to Operations Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}

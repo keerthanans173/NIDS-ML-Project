@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Attack Simulator — SentinelFlow NIDS{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-display font-bold text-2xl sm:text-3xl text-[#3B2F2A]">Synthetic Attack Traffic Simulator</h1>
+      <p class="text-xs sm:text-sm text-[#8A7568] mt-1">Stress-test SentinelFlow detection pipelines by injecting synthetic attack vectors with controllable intensity bursts.</p>
+    </div>
+    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+      Simulated Attack Sandbox
+    </span>
+  </div>
+
+  <!-- Intensity Control Bar -->
+  <div class="card-sentinel p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FFFDFB]">
+    <div class="space-y-1">
+      <span class="text-xs font-bold text-[#3B2F2A] uppercase tracking-wider block">Burst Intensity Selector</span>
+      <p class="text-xs text-[#8A7568]">Number of synthetic packet variations generated per injection cycle</p>
+    </div>
+    <div class="flex items-center gap-4">
+      <input type="range" id="intensity-slider" min="1" max="25" value="5" oninput="document.getElementById('intensity-val').innerText = this.value" class="w-48 accent-orange-600">
+      <div class="text-xs font-mono font-bold bg-[#FFF8F0] border border-[#F3E5D8] px-3 py-1 rounded-lg text-orange-600">
+        <span id="intensity-val">5</span> Packets / Burst
+      </div>
+    </div>
+  </div>
+
+  <!-- Attack Vector Grid (4 Attack Cards) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+    <!-- Card 1: DoS -->
+    <div class="card-sentinel p-5 flex flex-col justify-between space-y-4 border-t-4 border-t-red-600">
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">HIGH SEVERITY</span>
+          <span class="text-xl">🌊</span>
+        </div>
+        <h3 class="font-display font-bold text-lg text-[#3B2F2A]">Denial of Service (DoS)</h3>
+        <p class="text-xs text-[#8A7568] leading-relaxed">
+          Simulates resource exhaustion via SYN floods (<code>neptune</code>, <code>smurf</code>, <code>teardrop</code>). Characterized by high connection counts and elevated SYN error ratios.
+        </p>
+      </div>
+      <button onclick="triggerInjection('DoS')" class="btn-primary-gradient w-full py-2.5 text-xs justify-center shadow-xs">
+        <i data-lucide="zap" class="w-4 h-4"></i>
+        <span>Inject DoS Burst</span>
+      </button>
+    </div>
+
+    <!-- Card 2: Probe -->
+    <div class="card-sentinel p-5 flex flex-col justify-between space-y-4 border-t-4 border-t-amber-500">
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">MEDIUM SEVERITY</span>
+          <span class="text-xl">🔍</span>
+        </div>
+        <h3 class="font-display font-bold text-lg text-[#3B2F2A]">Reconnaissance (Probe)</h3>
+        <p class="text-xs text-[#8A7568] leading-relaxed">
+          Simulates network sweeps and port mapping (<code>satan</code>, <code>ipsweep</code>, <code>nmap</code>). Triggers high connection failure (REJ) rates across divergent destination services.
+        </p>
+      </div>
+      <button onclick="triggerInjection('Probe')" class="btn-primary-gradient w-full py-2.5 text-xs justify-center shadow-xs">
+        <i data-lucide="scan" class="w-4 h-4"></i>
+        <span>Inject Probe Scan</span>
+      </button>
+    </div>
+
+    <!-- Card 3: R2L -->
+    <div class="card-sentinel p-5 flex flex-col justify-between space-y-4 border-t-4 border-t-orange-600">
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">HIGH SEVERITY</span>
+          <span class="text-xl">🔓</span>
+        </div>
+        <h3 class="font-display font-bold text-lg text-[#3B2F2A]">Remote-to-Local (R2L)</h3>
+        <p class="text-xs text-[#8A7568] leading-relaxed">
+          Simulates unauthorized access attempts from external hosts (<code>guess_passwd</code>, <code>ftp_write</code>, <code>imap</code>). Features repeated failed logins and payload byte anomalies.
+        </p>
+      </div>
+      <button onclick="triggerInjection('R2L')" class="btn-primary-gradient w-full py-2.5 text-xs justify-center shadow-xs">
+        <i data-lucide="key-round" class="w-4 h-4"></i>
+        <span>Inject R2L Attack</span>
+      </button>
+    </div>
+
+    <!-- Card 4: U2R -->
+    <div class="card-sentinel p-5 flex flex-col justify-between space-y-4 border-t-4 border-t-purple-700">
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-900 border border-purple-200">CRITICAL SEVERITY</span>
+          <span class="text-xl">⚡</span>
+        </div>
+        <h3 class="font-display font-bold text-lg text-[#3B2F2A]">User-to-Root (U2R)</h3>
+        <p class="text-xs text-[#8A7568] leading-relaxed">
+          Simulates local privilege escalation exploits (<code>buffer_overflow</code>, <code>rootkit</code>, <code>loadmodule</code>). Characterized by root shell spawns and access control manipulations.
+        </p>
+      </div>
+      <button onclick="triggerInjection('U2R')" class="btn-primary-gradient w-full py-2.5 text-xs justify-center shadow-xs">
+        <i data-lucide="shield-alert" class="w-4 h-4"></i>
+        <span>Inject U2R Exploit</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Realtime Output Console Box -->
+  <div class="card-sentinel p-5 space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <i data-lucide="terminal" class="w-4 h-4 text-orange-600"></i>
+        <h3 class="font-display font-bold text-base text-[#3B2F2A]">Simulator Console & Telemetry Log</h3>
+      </div>
+      <button onclick="document.getElementById('sim-console-output').innerHTML = ''" class="text-xs text-[#8A7568] hover:text-[#3B2F2A]">
+        Clear Output
+      </button>
+    </div>
+
+    <div id="sim-console-output" class="bg-[#2D2420] text-[#FED7AA] font-mono text-xs p-4 rounded-xl h-60 overflow-y-auto space-y-1.5 shadow-inner">
+      <div class="text-[#8A7568] italic">// Simulator ready. Select an attack category above to inject synthetic network traffic...</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function triggerInjection(attackType) {
+    const intensity = document.getElementById('intensity-slider').value;
+    const form = new FormData();
+    form.append('attack_type', attackType);
+    form.append('intensity', intensity);
+
+    const consoleBox = document.getElementById('sim-console-output');
+    const logItem = document.createElement('div');
+    logItem.className = 'text-[11px]';
+    logItem.innerHTML = `<span style="color:#FBBF24;">[DISPATCH]</span> Injecting burst of ${intensity} synthetic ${attackType} packets...`;
+    consoleBox.insertBefore(logItem, consoleBox.firstChild);
+
+    try {
+      const res = await fetch('/api/simulator/inject', { method: 'POST', body: form });
+      const data = await res.json();
+
+      if (data.success) {
+        showToast(
+          `Attack Injected: ${attackType}`,
+          `Generated ${data.injected_count} packets. Alert workflow triggered.`,
+          'danger'
+        );
+
+        const sample = data.sample;
+        const confirmItem = document.createElement('div');
+        confirmItem.className = 'text-[11px] leading-relaxed';
+        confirmItem.innerHTML = `
+          <span style="color:#22C55E;">[DETECTED]</span> Classified as <strong style="color:#F87171;">${sample.attack_type}</strong> 
+          (Confidence: ${sample.confidence}%, Risk: ${sample.risk_score}, Threat: ${sample.threat_level}). 
+          <br/><span style="color:#8A7568;">Reason: ${sample.explanation}</span>
+        `;
+        consoleBox.insertBefore(confirmItem, consoleBox.firstChild);
+      }
+    } catch (err) {
+      showToast('Error', 'Injection request failed.', 'warning');
+    }
+  }
+</script>
+{% endblock %}

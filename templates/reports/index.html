@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Threat Intelligence & Reports — SentinelFlow NIDS{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-display font-bold text-2xl sm:text-3xl text-[#3B2F2A]">Threat Intelligence & Incident Reports</h1>
+      <p class="text-xs sm:text-sm text-[#8A7568] mt-1">Export executive PDF threat intelligence summaries, download raw telemetry CSV logs, and review defensive posture.</p>
+    </div>
+    
+    <!-- Action Export Buttons -->
+    <div class="flex items-center gap-3">
+      <a href="/reports/download/pdf" class="btn-primary-gradient text-xs py-2 px-4 shadow-sm">
+        <i data-lucide="file-down" class="w-4 h-4"></i>
+        <span>Download Executive PDF</span>
+      </a>
+      <a href="/reports/download/csv" class="btn-secondary-warm text-xs py-2 px-4">
+        <i data-lucide="table" class="w-4 h-4"></i>
+        <span>Export CSV Log</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Report Overview Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    <div class="card-sentinel p-5 space-y-3">
+      <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+        <i data-lucide="file-text" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h3 class="font-display font-bold text-base text-[#3B2F2A]">Executive PDF Dossier</h3>
+        <p class="text-xs text-[#8A7568] mt-1">
+          High-level overview formatted with ReportLab. Includes executive summary, threat distribution tables, critical incident logs, and defensive recommendations.
+        </p>
+      </div>
+      <a href="/reports/download/pdf" class="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-600 hover:underline pt-2">
+        <span>Generate PDF Document</span>
+        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+      </a>
+    </div>
+
+    <div class="card-sentinel p-5 space-y-3">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+        <i data-lucide="database" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h3 class="font-display font-bold text-base text-[#3B2F2A]">SIEM Telemetry Export (CSV)</h3>
+        <p class="text-xs text-[#8A7568] mt-1">
+          Raw tabular dataset of evaluated sessions, source IPs, protocol/service fields, risk scores, and analyst investigation statuses for ingestion into external SIEMs.
+        </p>
+      </div>
+      <a href="/reports/download/csv" class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:underline pt-2">
+        <span>Download Raw Telemetry</span>
+        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+      </a>
+    </div>
+
+    <div class="card-sentinel p-5 space-y-3">
+      <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+        <i data-lucide="shield-check" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h3 class="font-display font-bold text-base text-[#3B2F2A]">Continuous Sensor Audit</h3>
+        <p class="text-xs text-[#8A7568] mt-1">
+          Full persistent database audit logs storing all prediction outcomes and analyst triages in SQLite/PostgreSQL.
+        </p>
+      </div>
+      <a href="/history" class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:underline pt-2">
+        <span>View Full Audit History</span>
+        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Defensive Recommendations Card -->
+  <div class="card-sentinel p-6 space-y-4">
+    <div class="border-b border-[#F3E5D8] pb-3">
+      <h3 class="font-display font-bold text-lg text-[#3B2F2A]">Defensive Posture & Triage Recommendations</h3>
+      <p class="text-xs text-[#8A7568]">Actionable security playbooks derived from active threat distributions</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+      
+      <div class="p-4 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8] space-y-1.5">
+        <div class="flex items-center gap-2 font-bold text-red-700">
+          <i data-lucide="zap-off" class="w-4 h-4"></i>
+          <span>DoS Ingress Filtering</span>
+        </div>
+        <p class="text-[#8A7568] leading-relaxed">
+          Enforce rate limiting on TCP SYN packets across perimeter load balancers. Configure TCP SYN cookies (<code>net.ipv4.tcp_syncookies = 1</code>) to mitigate resource starvation.
+        </p>
+      </div>
+
+      <div class="p-4 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8] space-y-1.5">
+        <div class="flex items-center gap-2 font-bold text-amber-700">
+          <i data-lucide="radar" class="w-4 h-4"></i>
+          <span>Portsweep & Probe Mitigation</span>
+        </div>
+        <p class="text-[#8A7568] leading-relaxed">
+          Drop incoming probe scans with dynamic firewall threshold rules. Mask inactive port responses using silent packet drops rather than explicit TCP RST replies.
+        </p>
+      </div>
+
+      <div class="p-4 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8] space-y-1.5">
+        <div class="flex items-center gap-2 font-bold text-orange-700">
+          <i data-lucide="key" class="w-4 h-4"></i>
+          <span>Credential & R2L Hardening</span>
+        </div>
+        <p class="text-[#8A7568] leading-relaxed">
+          Audit services (SSH, Telnet, FTP) targeted by failed login clusters. Mandate public-key authentication and implement adaptive IP lockout for remote brute-force attempts.
+        </p>
+      </div>
+
+      <div class="p-4 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8] space-y-1.5">
+        <div class="flex items-center gap-2 font-bold text-purple-800">
+          <i data-lucide="lock" class="w-4 h-4"></i>
+          <span>Host Privilege & U2R Isolation</span>
+        </div>
+        <p class="text-[#8A7568] leading-relaxed">
+          Review hosts generating root shell spawn signatures. Enforce AppArmor/SELinux profiles, audit SUID binaries, and immediately isolate affected host endpoints from lateral subnet access.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

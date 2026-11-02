@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Result — SentinelFlow NIDS{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- Header & Back Button -->
+  <div class="flex items-center justify-between">
+    <a href="/detect" class="btn-secondary-warm text-xs py-2 px-3.5">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      <span>Analyze Another Session</span>
+    </a>
+    <span class="text-xs text-[#8A7568]">Model Pipeline: <strong class="text-[#3B2F2A]">XGBoost Multi-Class</strong></span>
+  </div>
+
+  <!-- Status Banner -->
+  <div class="card-sentinel p-6 text-center border-l-8 {% if traffic_status == 'Malicious' %}border-l-red-600 bg-gradient-to-r from-red-50 to-white{% elif traffic_status == 'Safe' %}border-l-emerald-600 bg-gradient-to-r from-emerald-50 to-white{% else %}border-l-amber-500 bg-gradient-to-r from-amber-50 to-white{% endif %}">
+    <div class="inline-flex items-center gap-3">
+      {% if traffic_status == 'Malicious' %}
+        <div class="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-xl shadow-xs">🚨</div>
+        <div class="text-left">
+          <span class="text-xs font-bold text-red-600 uppercase tracking-wider block">Intrusion Alert</span>
+          <h2 class="font-display font-bold text-2xl text-red-700">{{ traffic_status }} — {{ prediction }} Attack Detected</h2>
+        </div>
+      {% elif traffic_status == 'Safe' %}
+        <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shadow-xs">✅</div>
+        <div class="text-left">
+          <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider block">Verified Safe</span>
+          <h2 class="font-display font-bold text-2xl text-emerald-800">{{ traffic_status }} — Benign Normal Traffic</h2>
+        </div>
+      {% else %}
+        <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl shadow-xs">⚠️</div>
+        <div class="text-left">
+          <span class="text-xs font-bold text-amber-700 uppercase tracking-wider block">Suspicious Anomaly</span>
+          <h2 class="font-display font-bold text-2xl text-amber-800">{{ traffic_status }} — {{ prediction }} Signature</h2>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Main Analysis Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    <!-- Half Donut Risk Gauge Card -->
+    <div class="card-sentinel p-5 flex flex-col items-center justify-center text-center">
+      <span class="text-xs font-semibold text-[#8A7568] uppercase tracking-wider mb-2">Composite Risk Score</span>
+      <div class="threat-gauge-wrapper">
+        <canvas id="gaugeCanvas" width="220" height="130"></canvas>
+        <div class="threat-gauge-val">
+          <div class="text-3xl font-display font-bold text-[#3B2F2A]" id="gaugeScore">0</div>
+          <div class="text-[11px] text-[#8A7568]">Index (0–100)</div>
+        </div>
+      </div>
+      <div class="mt-3 text-xs font-medium text-[#8A7568]">
+        Risk Class: <strong class="text-[#3B2F2A]">{{ threat_level }} Threat</strong>
+      </div>
+    </div>
+
+    <!-- 4 Metric Stat Cards (2 Cols) -->
+    <div class="md:col-span-2 grid grid-cols-2 gap-4">
+      
+      <div class="card-sentinel p-4 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-[#8A7568] uppercase tracking-wider">Classification</span>
+        <div class="text-xl font-bold font-display mt-2 {% if traffic_status == 'Malicious' %}text-red-600{% elif traffic_status == 'Safe' %}text-emerald-700{% else %}text-amber-700{% endif %}">
+          {{ prediction }}
+        </div>
+        <span class="text-[11px] text-[#8A7568] mt-1">Target category</span>
+      </div>
+
+      <div class="card-sentinel p-4 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-[#8A7568] uppercase tracking-wider">Confidence</span>
+        <div class="text-xl font-bold font-display text-[#3B2F2A] mt-2">
+          {{ confidence }}%
+        </div>
+        <span class="text-[11px] text-[#8A7568] mt-1">Multi-class probability</span>
+      </div>
+
+      <div class="card-sentinel p-4 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-[#8A7568] uppercase tracking-wider">Threat Level</span>
+        <div class="text-xl font-bold font-display mt-2 {% if threat_level in ('Critical', 'High') %}text-red-600{% elif threat_level == 'Medium' %}text-amber-700{% else %}text-emerald-700{% endif %}">
+          {{ threat_level }}
+        </div>
+        <span class="text-[11px] text-[#8A7568] mt-1">Operational impact</span>
+      </div>
+
+      <div class="card-sentinel p-4 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-[#8A7568] uppercase tracking-wider">Traffic Status</span>
+        <div class="text-xl font-bold font-display mt-2 {% if traffic_status == 'Malicious' %}text-red-600{% elif traffic_status == 'Safe' %}text-emerald-700{% else %}text-amber-700{% endif %}">
+          {{ traffic_status }}
+        </div>
+        <span class="text-[11px] text-[#8A7568] mt-1">Network posture</span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- SHAP Plain-English Explainability Box -->
+  <div class="card-sentinel p-5 space-y-3 bg-[#FFFDFB]">
+    <div class="flex items-center gap-2 text-xs font-bold text-orange-600 uppercase tracking-wider">
+      <i data-lucide="sparkles" class="w-4 h-4"></i>
+      <span>Why was this classified as {{ prediction }}? (SHAP Explainability)</span>
+    </div>
+    <p class="text-sm text-[#3B2F2A] leading-relaxed font-medium bg-[#FFF8F0] p-4 rounded-xl border border-[#F3E5D8]">
+      {{ explanation or "Session evaluated against baseline training clusters." }}
+    </p>
+
+    <!-- Top 5 Features Table / Breakdown -->
+    {% if top_features %}
+      <div class="pt-2">
+        <span class="text-xs font-semibold text-[#8A7568] block mb-2">Top Contributing Telemetry Features:</span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+          {% for f in top_features %}
+            <div class="p-2.5 rounded-lg border border-[#F3E5D8] bg-white text-xs">
+              <span class="text-[11px] text-[#8A7568] block truncate" title="{{ f.friendly_name }}">{{ f.friendly_name }}</span>
+              <div class="flex items-baseline justify-between mt-1">
+                <span class="font-mono font-bold text-[#3B2F2A]">{{ f.raw_value }}</span>
+                <span class="text-[10px] font-mono {% if f.impact == 'positive' %}text-red-600{% else %}text-emerald-600{% endif %}">
+                  {{ '+' if f.impact == 'positive' else '' }}{{ f.importance }}
+                </span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Actions Footer -->
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+    <a href="/detect" class="btn-secondary-warm text-xs py-2.5 px-4 w-full sm:w-auto text-center justify-center">
+      <i data-lucide="scan" class="w-4 h-4"></i>
+      <span>Analyze Another Session</span>
+    </a>
+    <div class="flex gap-2 w-full sm:w-auto">
+      {% if traffic_status != 'Safe' %}
+        <button onclick="quickMitigateIP('{{ source_ip or '192.168.1.100' }}', '{{ prediction }}')" class="btn-secondary-warm text-xs py-2.5 px-4 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 flex-1 sm:flex-none justify-center">
+          <i data-lucide="shield-ban" class="w-4 h-4"></i>
+          <span>Simulate IP Block</span>
+        </button>
+      {% endif %}
+      <a href="/dashboard" class="btn-primary-gradient text-xs py-2.5 px-5 flex-1 sm:flex-none justify-center">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span>Return to Dashboard</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    animateGauge({{ risk_score }}, "{{ traffic_status }}");
+  });
+
+  function animateGauge(targetScore, status) {
+    const canvas = document.getElementById('gaugeCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const cx = 110, cy = 110, r = 85;
+    const startAngle = Math.PI;
+    const fullAngle = 2 * Math.PI;
+
+    let activeColor = '#16A34A'; // Safe
+    if (status === 'Malicious') activeColor = '#DC2626';
+    else if (status === 'Suspicious') activeColor = '#F59E0B';
+
+    let current = 0;
+    const scoreEl = document.getElementById('gaugeScore');
+
+    function draw(val) {
+      ctx.clearRect(0, 0, 220, 130);
+
+      // Background Track
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, startAngle, fullAngle);
+      ctx.strokeStyle = '#F3E5D8';
+      ctx.lineWidth = 14;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Active Arc
+      const fillAngle = startAngle + (val / 100) * Math.PI;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, startAngle, fillAngle);
+      ctx.strokeStyle = activeColor;
+      ctx.lineWidth = 14;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+
+    const step = Math.max(0.5, targetScore / 45);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, targetScore);
+      draw(current);
+      if (scoreEl) {
+        scoreEl.textContent = Math.round(current);
+        scoreEl.style.color = activeColor;
+      }
+      if (current >= targetScore) clearInterval(timer);
+    }, 16);
+  }
+
+  async function quickMitigateIP(ip, attackType) {
+    try {
+      const res = await fetch('/api/alerts/block-ip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip_address: ip, attack_type: attackType, reason: 'Manually flagged from detection result' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Mitigation Active', `Simulated blocklist rule applied for ${ip}.`, 'danger');
+      }
+    } catch (e) {
+      showToast('Error', 'Could not apply simulated block.', 'warning');
+    }
+  }
+</script>
+{% endblock %}

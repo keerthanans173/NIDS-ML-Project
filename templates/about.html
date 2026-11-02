@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}About & Architecture — SentinelFlow NIDS{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="text-center space-y-2 pb-4 border-b border-[#F3E5D8]">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-orange-800 text-xs font-bold mb-1">
+      <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+      <span>SentinelFlow Architecture & Standards</span>
+    </div>
+    <h1 class="font-display font-bold text-3xl sm:text-4xl text-[#3B2F2A]">About SentinelFlow NIDS</h1>
+    <p class="text-sm text-[#8A7568] max-w-xl mx-auto">
+      An explainable, production-ready Network Intrusion Detection System built with Flask, XGBoost, and SHAP feature attribution.
+    </p>
+  </div>
+
+  <!-- System Overview -->
+  <div class="card-sentinel p-6 space-y-4">
+    <h2 class="font-display font-bold text-xl text-[#3B2F2A]">1. Architecture & Telemetry Pipeline</h2>
+    <p class="text-xs text-[#3B2F2A] leading-relaxed">
+      SentinelFlow ingests network traffic sessions and evaluates them across a 41-feature dimensional space. The core engine applies an ensemble pipeline combining:
+    </p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs pt-1">
+      <div class="p-3.5 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8] space-y-1">
+        <strong class="text-orange-700 block">Unified Data Pipeline</strong>
+        <p class="text-[#8A7568]">Serialized LabelEncoders, StandardScaler, and feature schema definitions stored in a single joblib pipeline to prevent training-serving drift.</p>
+      </div>
+      <div class="p-3.5 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8] space-y-1">
+        <strong class="text-amber-700 block">Supervised XGBoost Classifier</strong>
+        <p class="text-[#8A7568]">Multi-class gradient boosted trees calibrated across 5 primary attack categories (Normal, DoS, Probe, R2L, U2R) with minority class balancing.</p>
+      </div>
+      <div class="p-3.5 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8] space-y-1">
+        <strong class="text-red-700 block">SHAP Explainability</strong>
+        <p class="text-[#8A7568]">TreeExplainer calculates local feature attributions for every prediction, translated in real-time into plain-English human sentences for security analysts.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- NSL-KDD Benchmark Limitations -->
+  <div class="card-sentinel p-6 space-y-3 border-l-4 border-l-amber-500 bg-[#FFFDFB]">
+    <div class="flex items-center gap-2">
+      <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600"></i>
+      <h2 class="font-display font-bold text-xl text-[#3B2F2A]">2. Dataset & Benchmark Limitations</h2>
+    </div>
+    <div class="text-xs text-[#3B2F2A] space-y-2 leading-relaxed">
+      <p>
+        SentinelFlow is evaluated on the standard <strong>NSL-KDD benchmark dataset</strong> (comprising 125,973 training records and 22,544 test records). While NSL-KDD resolves major redundancy issues present in original KDD Cup 1999 data, critical operational limitations must be noted:
+      </p>
+      <ul class="list-disc list-inside space-y-1 text-[#8A7568] pl-2">
+        <li><strong>No Raw Packet Payloads</strong>: Records represent synthesized 2-second connection summaries rather than full raw PCAP packet byte streams.</li>
+        <li><strong>Older Traffic Profiles</strong>: Traffic patterns reflect legacy protocols and do not account for modern encrypted protocols (e.g., TLS 1.3, QUIC, HTTP/3).</li>
+        <li><strong>Novel Attack Penalty in Test Split</strong>: The KDDTest+ dataset intentionally includes 17 novel attack variations (particularly in R2L and U2R) that are absent from the training set, causing lower recall on these categories.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Legal & Authorized Monitoring Notice -->
+  <div class="card-sentinel p-6 space-y-3 border-l-4 border-l-red-600 bg-red-50/30">
+    <div class="flex items-center gap-2">
+      <i data-lucide="scale" class="w-5 h-5 text-red-600"></i>
+      <h2 class="font-display font-bold text-xl text-red-800">3. Legal Notice & Ethical Usage</h2>
+    </div>
+    <p class="text-xs text-[#3B2F2A] leading-relaxed">
+      This Network Intrusion Detection System is designed exclusively for defense, network security auditing, academic research, and monitoring of <strong>authorized corporate or laboratory networks</strong>. Unauthorized network packet interception, traffic sniffing, or applying disruptive firewall policies on networks without explicit administrative authorization is illegal and punishable under the Computer Fraud and Abuse Act (CFAA) and international cybersecurity statutes.
+    </p>
+  </div>
+
+</div>
+{% endblock %}

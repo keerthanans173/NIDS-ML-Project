@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIDS — Predict</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+  .page-title { text-align:center; margin-bottom:6px; }
+  .page-subtitle {
+    text-align:center; font-size:13px;
+    color:rgba(255,255,255,0.5); margin-bottom:28px;
+  }
+  body.light-mode .page-subtitle { color:rgba(0,0,0,0.45); }
+  .form-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .form-label span {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+  }
+  body.light-mode .form-label span { color: rgba(0,0,0,0.45); }
+  input[type=number] { -moz-appearance: textfield; }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()">☀ / 🌙</button>
+<div class="navbar">
+  <a href="/">Predict</a>
+  <a href="/history">History</a>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/about">About</a>
+</div>
+
+<div class="container">
+  <h2 class="page-title">🛡️ Network Intrusion Detection</h2>
+  <p class="page-subtitle">Enter network parameters to detect intrusion threats</p>
+
+  <form action="/predict" method="POST">
+
+    <!-- ── 6 Visible Fields ── -->
+    <label class="form-label">
+      <span>Protocol Type</span>
+      <select name="protocol_type">
+        <option value="tcp">TCP</option>
+        <option value="udp">UDP</option>
+        <option value="icmp">ICMP</option>
+      </select>
+    </label>
+
+    <label class="form-label">
+      <span>Service</span>
+      <select name="service">
+        <option value="http">http</option>
+        <option value="ftp">ftp</option>
+        <option value="ftp_data">ftp_data</option>
+        <option value="smtp">smtp</option>
+        <option value="ssh">ssh</option>
+        <option value="telnet">telnet</option>
+        <option value="private">private</option>
+        <option value="eco_i">eco_i</option>
+        <option value="ecr_i">ecr_i</option>
+        <option value="domain_u">domain_u</option>
+        <option value="other">other</option>
+      </select>
+    </label>
+
+    <label class="form-label">
+      <span>Connection Flag</span>
+      <select name="flag">
+        <option value="SF">SF — Normal</option>
+        <option value="S0">S0 — No Response (DoS)</option>
+        <option value="REJ">REJ — Rejected</option>
+        <option value="RSTO">RSTO — Reset</option>
+        <option value="RSTR">RSTR — RST by responder</option>
+        <option value="OTH">OTH — Other</option>
+        <option value="SH">SH — SYN+FIN</option>
+      </select>
+    </label>
+
+    <label class="form-label">
+      <span>Source Bytes</span>
+      <input type="number" name="src_bytes" placeholder="e.g. 0" min="0" required>
+    </label>
+
+    <label class="form-label">
+      <span>Connection Count (0–511)</span>
+      <input type="number" name="count" placeholder="e.g. 1" min="0" max="511" required>
+    </label>
+
+    <label class="form-label">
+      <span>SYN Error Rate (0.00–1.00)</span>
+      <input type="number" name="serror_rate" placeholder="e.g. 0.00" min="0" max="1" step="0.01" required>
+    </label>
+
+    <!-- ── 35 Hidden Fields (silent defaults) ── -->
+    <input type="hidden" name="duration"                    value="0">
+    <input type="hidden" name="dst_bytes"                   value="0">
+    <input type="hidden" name="land"                        value="0">
+    <input type="hidden" name="wrong_fragment"              value="0">
+    <input type="hidden" name="urgent"                      value="0">
+    <input type="hidden" name="hot"                         value="0">
+    <input type="hidden" name="num_failed_logins"           value="0">
+    <input type="hidden" name="logged_in"                   value="0">
+    <input type="hidden" name="num_compromised"             value="0">
+    <input type="hidden" name="root_shell"                  value="0">
+    <input type="hidden" name="su_attempted"                value="0">
+    <input type="hidden" name="num_root"                    value="0">
+    <input type="hidden" name="num_file_creations"          value="0">
+    <input type="hidden" name="num_shells"                  value="0">
+    <input type="hidden" name="num_access_files"            value="0">
+    <input type="hidden" name="num_outbound_cmds"           value="0">
+    <input type="hidden" name="is_host_login"               value="0">
+    <input type="hidden" name="is_guest_login"              value="0">
+    <input type="hidden" name="srv_count"                   value="1">
+    <input type="hidden" name="srv_serror_rate"             value="0.00">
+    <input type="hidden" name="rerror_rate"                 value="0.00">
+    <input type="hidden" name="srv_rerror_rate"             value="0.00">
+    <input type="hidden" name="same_srv_rate"               value="1.00">
+    <input type="hidden" name="diff_srv_rate"               value="0.00">
+    <input type="hidden" name="srv_diff_host_rate"          value="0.00">
+    <input type="hidden" name="dst_host_count"              value="100">
+    <input type="hidden" name="dst_host_srv_count"          value="100">
+    <input type="hidden" name="dst_host_same_srv_rate"      value="1.00">
+    <input type="hidden" name="dst_host_diff_srv_rate"      value="0.00">
+    <input type="hidden" name="dst_host_same_src_port_rate" value="0.00">
+    <input type="hidden" name="dst_host_srv_diff_host_rate" value="0.00">
+    <input type="hidden" name="dst_host_serror_rate"        value="0.00">
+    <input type="hidden" name="dst_host_srv_serror_rate"    value="0.00">
+    <input type="hidden" name="dst_host_rerror_rate"        value="0.00">
+    <input type="hidden" name="dst_host_srv_rerror_rate"    value="0.00">
+
+    <button type="submit" style="margin-top:10px;">🔍 Analyze Network Traffic</button>
+  </form>
+</div>
+
+<script>
+function toggleTheme() {
+    document.body.classList.toggle("light-mode");
+    localStorage.setItem("theme", document.body.classList.contains("light-mode") ? "light" : "dark");
+}
+window.onload = function() {
+    if (localStorage.getItem("theme") === "light") document.body.classList.add("light-mode");
+};
+</script>
+</body>
+</html>

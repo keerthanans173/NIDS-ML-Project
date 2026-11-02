@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Settings & Sensitivity — SentinelFlow NIDS{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-display font-bold text-2xl sm:text-3xl text-[#3B2F2A]">System Settings & Sensor Tuning</h1>
+      <p class="text-xs sm:text-sm text-[#8A7568] mt-1">Configure detection sensitivity thresholds, notification webhooks, and security retention policies.</p>
+    </div>
+    
+    <!-- Glossary Button -->
+    <button onclick="document.getElementById('glossary-modal').classList.remove('hidden')" class="btn-secondary-warm text-xs py-2 px-3.5">
+      <i data-lucide="book-open" class="w-4 h-4 text-orange-600"></i>
+      <span>NIDS & NSL-KDD Glossary</span>
+    </button>
+  </div>
+
+  <!-- Settings Form -->
+  <form method="POST" action="/settings" class="space-y-6">
+
+    <!-- 1. Sensitivity Slider Card -->
+    <div class="card-sentinel p-6 space-y-4">
+      <div class="border-b border-[#F3E5D8] pb-3 flex items-center justify-between">
+        <div>
+          <h2 class="font-display font-bold text-lg text-[#3B2F2A]">1. Threat Decision Sensitivity Threshold</h2>
+          <p class="text-xs text-[#8A7568]">Controls the threshold at which anomalous traffic triggers an attack alert rather than safe classification.</p>
+        </div>
+        <span class="text-xs font-mono font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200">
+          Current: <span id="sens-val-display">{{ "%.2f"|format(sensitivity) }}</span>
+        </span>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between text-xs font-semibold text-[#8A7568]">
+          <span>Low Sensitivity (0.20) — High Precision</span>
+          <span>Normal (0.60)</span>
+          <span>High Sensitivity (0.90) — Zero-Tolerance</span>
+        </div>
+        <input 
+          type="range" 
+          name="sensitivity" 
+          min="0.10" 
+          max="0.95" 
+          step="0.05" 
+          value="{{ sensitivity }}" 
+          oninput="document.getElementById('sens-val-display').innerText = parseFloat(this.value).toFixed(2)"
+          class="w-full accent-orange-600"
+        >
+        <p class="text-[11px] text-[#8A7568] italic">
+          Higher sensitivity triggers alerts on even minor statistical deviations from standard normal baselines, suitable for high-security isolation zones.
+        </p>
+      </div>
+    </div>
+
+    <!-- 2. Notification Webhook Integration -->
+    <div class="card-sentinel p-6 space-y-4">
+      <div class="border-b border-[#F3E5D8] pb-3">
+        <h2 class="font-display font-bold text-lg text-[#3B2F2A]">2. Real-Time Alert Webhooks</h2>
+        <p class="text-xs text-[#8A7568]">Dispatch instant notifications when Critical or High severity attacks are identified.</p>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-semibold text-[#3B2F2A] block mb-1">Webhook URL (Slack, Telegram, Discord, or SIEM Endpoint):</label>
+          <input 
+            type="url" 
+            placeholder="https://hooks.slack.com/services/..." 
+            class="w-full text-xs py-2 px-3 rounded-xl border border-[#F3E5D8] bg-white focus:outline-none focus:border-orange-500 font-mono"
+          >
+        </div>
+        <div class="flex items-center gap-4 text-xs text-[#3B2F2A]">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked class="rounded border-[#F3E5D8] text-orange-600 focus:ring-0">
+            <span>Notify on Critical (U2R)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked class="rounded border-[#F3E5D8] text-orange-600 focus:ring-0">
+            <span>Notify on High (DoS, R2L)</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Data Retention Policy -->
+    <div class="card-sentinel p-6 space-y-4">
+      <div class="border-b border-[#F3E5D8] pb-3">
+        <h2 class="font-display font-bold text-lg text-[#3B2F2A]">3. Telemetry Log Retention</h2>
+        <p class="text-xs text-[#8A7568]">Configures auto-pruning rules for SQLite / PostgreSQL database storage.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <label class="p-3 rounded-xl border border-[#F3E5D8] bg-[#FFF8F0] flex items-center gap-2 text-xs font-medium cursor-pointer">
+          <input type="radio" name="retention" value="30" class="text-orange-600 focus:ring-0">
+          <span>30 Days Active Purge</span>
+        </label>
+        <label class="p-3 rounded-xl border border-[#F3E5D8] bg-[#FFF8F0] flex items-center gap-2 text-xs font-medium cursor-pointer">
+          <input type="radio" name="retention" value="90" checked class="text-orange-600 focus:ring-0">
+          <span>90 Days Standard</span>
+        </label>
+        <label class="p-3 rounded-xl border border-[#F3E5D8] bg-[#FFF8F0] flex items-center gap-2 text-xs font-medium cursor-pointer">
+          <input type="radio" name="retention" value="0" class="text-orange-600 focus:ring-0">
+          <span>Indefinite Storage</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex justify-end">
+      <button type="submit" class="btn-primary-gradient text-xs py-2.5 px-6 shadow-md">
+        Save Sensor Configuration
+      </button>
+    </div>
+
+  </form>
+
+</div>
+
+<!-- Glossary Modal -->
+<div id="glossary-modal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white border border-[#F3E5D8] rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[85vh] overflow-y-auto">
+    <div class="flex items-center justify-between pb-3 border-b border-[#F3E5D8]">
+      <div class="flex items-center gap-2">
+        <i data-lucide="book-marked" class="w-5 h-5 text-orange-600"></i>
+        <h3 class="font-display font-bold text-lg text-[#3B2F2A]">NIDS & Feature Glossary</h3>
+      </div>
+      <button onclick="document.getElementById('glossary-modal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-[#FFF8F0] text-[#8A7568] hover:text-[#3B2F2A] flex items-center justify-center">
+        &times;
+      </button>
+    </div>
+
+    <div class="space-y-3 text-xs text-[#3B2F2A] leading-relaxed">
+      <div class="p-3 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8]">
+        <strong class="text-orange-700 block">DoS (Denial of Service)</strong>
+        <span>An attack that attempts to render a machine or network resource unavailable to its intended users by flooding it with illegitimate connection requests.</span>
+      </div>
+      <div class="p-3 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8]">
+        <strong class="text-amber-700 block">Probe (Reconnaissance)</strong>
+        <span>Surveillance scans (e.g. nmap, ipsweep) where an adversary maps open ports and active services across a network before launching a directed exploit.</span>
+      </div>
+      <div class="p-3 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8]">
+        <strong class="text-red-700 block">R2L (Remote to Local)</strong>
+        <span>An attack where an unauthorized remote user exploits weaknesses to gain local user privileges on a machine (e.g. password brute force).</span>
+      </div>
+      <div class="p-3 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8]">
+        <strong class="text-purple-800 block">U2R (User to Root)</strong>
+        <span>Privilege escalation where a user with non-privileged access executes an exploit (e.g. buffer overflow) to obtain root/superuser capabilities.</span>
+      </div>
+      <div class="p-3 rounded-xl bg-[#FFF8F0] border border-[#F3E5D8]">
+        <strong class="text-stone-700 block">srv_count & serror_rate</strong>
+        <span><code>srv_count</code> measures connections to the same port in a 2-second sliding window. <code>serror_rate</code> represents the percentage of those connections that encountered SYN handshake errors.</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
